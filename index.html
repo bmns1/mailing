@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; } /* Slate-100 */
+    .sva-teal { color: #0d9488; } /* Teal-600 */
+    .bg-sva-teal { background-color: #0d9488; }
+    .btn-primary { @apply bg-teal-600 text-white px-4 py-2 rounded shadow hover:bg-teal-700 transition duration-150; }
+    .btn-secondary { @apply bg-white text-slate-700 border border-slate-300 px-4 py-2 rounded shadow-sm hover:bg-slate-50 transition duration-150; }
+    .input-field { @apply w-full border border-slate-300 rounded p-2 focus:ring-2 focus:ring-teal-500 focus:outline-none; }
+    .label-text { @apply block text-sm font-medium text-slate-700 mb-1; }
+  </style>
+</head>
+<body class="p-6">
+
+  <div class="max-w-7xl mx-auto flex justify-between items-center mb-8">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 bg-teal-600 rounded-lg flex items-center justify-center text-white font-bold">SVA</div>
+      <h1 class="text-2xl font-bold text-slate-800">Admin Comms Center</h1>
+    </div>
+    <div class="text-slate-500 text-sm">Logged in as Admin</div>
+  </div>
+
+  <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+    <div class="lg:col-span-1 bg-white rounded-xl shadow-sm border border-slate-200 p-5 h-fit">
+      <h2 class="text-lg font-semibold text-slate-800 mb-4">Target Audience</h2>
+      
+      <div class="space-y-3 mb-6">
+        <div>
+          <label class="label-text">Filter by Grade</label>
+          <select id="filterGrade" class="input-field" onchange="applyFilters()">
+            <option value="All">All Grades</option>
+            </select>
+        </div>
+        <div>
+          <label class="label-text">Filter by Donation Tier</label>
+          <select id="filterDonation" class="input-field" onchange="applyFilters()">
+            <option value="All">All Tiers</option>
+             </select>
+        </div>
+        <div>
+          <label class="label-text">Filter by Occupation</label>
+          <input type="text" id="filterJob" class="input-field" placeholder="e.g. Engineer..." onkeyup="applyFilters()">
+        </div>
+      </div>
+
+      <hr class="border-slate-100 my-4">
+
+      <div class="flex justify-between items-end mb-2">
+        <span class="text-sm font-semibold text-slate-600">Recipients List</span>
+        <span id="recipientCount" class="text-xs bg-teal-100 text-teal-800 px-2 py-1 rounded-full">0 Selected</span>
+      </div>
+
+      <div class="overflow-y-auto max-h-96 border border-slate-200 rounded-lg bg-slate-50 p-2 text-sm" id="recipientList">
+        <div class="text-slate-400 text-center p-4">Loading data...</div>
+      </div>
+    </div>
+
+    <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <h2 class="text-lg font-semibold text-slate-800 mb-4">Compose Email</h2>
+
+      <div class="grid grid-cols-2 gap-4 mb-4">
+        <div>
+          <label class="label-text">Sender Name</label>
+          <input type="text" id="senderName" class="input-field" value="SVA Admin Team">
+        </div>
+        <div>
+          <label class="label-text">Reply-To Address</label>
+          <input type="email" id="replyTo" class="input-field" value="info@svaschool.org">
+        </div>
+      </div>
+
+      <div class="mb-4">
+        <label class="label-text">Subject</label>
+        <input type="text" id="subject" class="input-field" placeholder="Important Update for {Child Name}...">
+      </div>
+
+      <div class="mb-4">
+        <label class="label-text">
+          Body (HTML Supported) 
+          <span class="text-xs font-normal text-slate-500 ml-2">Available tags: {Parent Name}, {Child Name}, {Grade}, {Donation Tier}</span>
+        </label>
+        <textarea id="emailBody" class="input-field h-64 font-mono text-sm" placeholder="Dear {Parent Name},<br><br>..."></textarea>
+      </div>
+
+      <div class="bg-slate-50 p-4 rounded-lg flex justify-between items-center border border-slate-200">
+        <button onclick="sendTest()" class="text-slate-600 hover:text-slate-900 text-sm font-medium">Send Test to Me</button>
+        <button onclick="sendCampaign()" id="sendBtn" class="btn-primary">
+          Send Campaign
+        </button>
+      </div>
+      <div id="statusMsg" class="mt-2 text-center text-sm font-medium"></div>
+    </div>
+
+  </div>
+
+  <script>
+    let allData = [];
+    let filteredData = [];
+
+    // Initialize
+    window.onload = function() {
+      google.script.run.withSuccessHandler(onDataLoaded).getData();
+    };
+
+    function onDataLoaded(data) {
+      allData = data;
+      populateFilterOptions();
+      applyFilters(); // Initial render
+    }
+
+    // Populate dropdowns dynamically based on sheet data
+    function populateFilterOptions() {
+      const grades = [...new Set(allData.map(d => d['Grade']))].filter(Boolean).sort();
+      const donations = [...new Set(allData.map(d => d['Donation Tier']))].filter(Boolean).sort();
+      
+      const gradeSel = document.getElementById('filterGrade');
+      grades.forEach(g => gradeSel.innerHTML += `<option value="${g}">${g}</option>`);
+
+      const donationSel = document.getElementById('filterDonation');
+      donations.forEach(d => donationSel.innerHTML += `<option value="${d}">${d}</option>`);
+    }
+
+    // Filter Logic
+    function applyFilters() {
+      const gradeVal = document.getElementById('filterGrade').value;
+      const donationVal = document.getElementById('filterDonation').value;
+      const jobVal = document.getElementById('filterJob').value.toLowerCase();
+
+      filteredData = allData.filter(row => {
+        const matchGrade = gradeVal === 'All' || row['Grade'] == gradeVal;
+        const matchDonation = donationVal === 'All' || row['Donation Tier'] == donationVal;
+        const matchJob = jobVal === '' || (row['Occupation'] && row['Occupation'].toString().toLowerCase().includes(jobVal));
+        return matchGrade && matchDonation && matchJob;
+      });
+
+      renderList();
+    }
+
+    // Render the side list
+    function renderList() {
+      const container = document.getElementById('recipientList');
+      document.getElementById('recipientCount').innerText = `${filteredData.length} Selected`;
+      
+      if(filteredData.length === 0) {
+        container.innerHTML = '<div class="p-2 text-slate-500 italic">No matches found.</div>';
+        return;
+      }
+
+      let html = '';
+      filteredData.forEach(row => {
+        html += `
+          <div class="flex justify-between items-center p-2 border-b border-slate-100 last:border-0 hover:bg-white">
+            <div>
+              <div class="font-semibold text-slate-700">${row['Parent Name']}</div>
+              <div class="text-xs text-slate-500">${row['Child Name']} (${row['Grade']})</div>
+            </div>
+            <div class="text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded">${row['Status'] || 'Ready'}</div>
+          </div>
+        `;
+      });
+      container.innerHTML = html;
+    }
+
+    // Send Actions
+    function sendCampaign() {
+      if(!confirm(`Are you sure you want to send this to ${filteredData.length} parents?`)) return;
+
+      const btn = document.getElementById('sendBtn');
+      btn.disabled = true;
+      btn.innerText = "Sending...";
+      
+      const emailData = {
+        subject: document.getElementById('subject').value,
+        body: document.getElementById('emailBody').value,
+        senderName: document.getElementById('senderName').value,
+        replyTo: document.getElementById('replyTo').value
+      };
+
+      google.script.run.withSuccessHandler(res => {
+        btn.disabled = false;
+        btn.innerText = "Send Campaign";
+        document.getElementById('statusMsg').innerHTML = `<span class="text-green-600">Sent: ${res.success}, Failed: ${res.failed}</span>`;
+        // Refresh data to update status columns
+        google.script.run.withSuccessHandler(onDataLoaded).getData();
+      }).sendBatchEmails(filteredData, emailData);
+    }
+
+    function sendTest() {
+        const email = prompt("Enter email for test:");
+        if(!email) return;
+        
+        // Mock a parent object for the test
+        const testParent = [{
+            'Parent Name': "Test Parent",
+            'Child Name': "Test Child",
+            'Grade': "5",
+            'Email': email,
+            'Donation Tier': "Gold",
+            '_rowIndex': -1 // Won't log to sheet
+        }];
+
+        const emailData = {
+            subject: "[TEST] " + document.getElementById('subject').value,
+            body: document.getElementById('emailBody').value,
+            senderName: document.getElementById('senderName').value,
+            replyTo: document.getElementById('replyTo').value
+        };
+
+        google.script.run.withSuccessHandler(() => alert("Test Sent")).sendBatchEmails(testParent, emailData);
+    }
+  </script>
+</body>
+</html>
