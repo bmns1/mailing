@@ -8,16 +8,14 @@
     <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
     <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
-
     <style>
-        body { font-family: 'Inter', system-ui, sans-serif; background-color: #f8fafc; }
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
         .loader { border: 3px solid #f3f3f3; border-top: 3px solid #0d9488; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; display: inline-block; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        /* Custom Scrollbar for preview areas */
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: #f1f1f1; }
-        ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #aaa; }
+        /* Tab Active State */
+        .tab-active { border-bottom: 2px solid #0d9488; color: #0d9488; font-weight: 600; }
+        .tab-inactive { border-bottom: 2px solid transparent; color: #64748b; }
+        .tab-inactive:hover { color: #334155; }
     </style>
 </head>
 <body class="text-slate-800">
@@ -27,12 +25,7 @@
              <div class="mb-6 flex justify-center"><div class="w-16 h-16 bg-teal-100 rounded-full flex items-center justify-center"><svg class="w-8 h-8 text-teal-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg></div></div>
             <h1 class="text-2xl font-bold text-slate-800 mb-2">SVA Admin Access</h1>
             <p class="text-slate-500 mb-8 text-sm">Sign in to access mailing tools.</p>
-            <div id="g_id_onload"
-                 data-client_id="14216824305-v19ecsmrhk1muaglrlhjceqjk5oeqr4n.apps.googleusercontent.com"
-                 data-callback="handleCredentialResponse"
-                 data-auto_select="false"
-                 data-scope="email profile openid">
-            </div>
+            <div id="g_id_onload" data-client_id="14216824305-v19ecsmrhk1muaglrlhjceqjk5oeqr4n.apps.googleusercontent.com" data-callback="handleCredentialResponse" data-auto_select="false" data-scope="email profile openid"></div>
             <div class="g_id_signin" data-type="standard" data-size="large" data-theme="filled_blue" data-text="sign_in_with" data-shape="rectangular" data-logo_alignment="center"></div>
             <div id="loginStatus" class="mt-4 text-sm font-medium text-red-500 hidden"></div>
         </div>
@@ -53,22 +46,47 @@
         </header>
 
         <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            
+            <div class="mb-6 border-b border-slate-200">
+                <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+                    <button onclick="switchTab('teachers')" id="tab-teachers" class="tab-active py-4 px-1 text-sm font-medium">
+                        Teachers (Class Update)
+                    </button>
+                    <button onclick="switchTab('donors')" id="tab-donors" class="tab-inactive py-4 px-1 text-sm font-medium">
+                        Donors & Fundraising
+                    </button>
+                    <button onclick="switchTab('general')" id="tab-general" class="tab-inactive py-4 px-1 text-sm font-medium">
+                        General Announcements
+                    </button>
+                </nav>
+            </div>
+
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
                 
                 <div class="lg:col-span-4 space-y-6">
                     <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
-                        <h2 class="font-bold text-slate-800 mb-4">Filter Audience</h2>
+                        <h2 class="font-bold text-slate-800 mb-4" id="filterTitle">Filter Audience</h2>
+                        
                         <div class="space-y-4">
-                            <label class="label-text">Filter by Grade</label>
-                            <select id="filterGrade" onchange="applyFilters()" class="w-full border p-2 rounded bg-slate-50"><option value="All">All Grades</option></select>
-                            <label class="label-text">Filter by Donation Tier</label>
-                            <select id="filterTier" onchange="applyFilters()" class="w-full border p-2 rounded bg-slate-50"><option value="All">All Tiers</option></select>
-                            <label class="label-text">Filter by Occupation</label>
-                            <input type="text" id="filterJob" onkeyup="applyFilters()" placeholder="Occupation Search..." class="w-full border p-2 rounded bg-slate-50">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Grade Level</label>
+                                <select id="filterGrade" onchange="applyFilters()" class="w-full border p-2 rounded bg-slate-50"><option value="All">All Grades</option></select>
+                            </div>
+
+                            <div id="filterTierContainer" class="hidden">
+                                <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Donation Tier</label>
+                                <select id="filterTier" onchange="applyFilters()" class="w-full border p-2 rounded bg-slate-50"><option value="All">All Tiers</option></select>
+                            </div>
+
+                            <div id="filterJobContainer" class="hidden">
+                                <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Occupation</label>
+                                <input type="text" id="filterJob" onkeyup="applyFilters()" placeholder="Search Job..." class="w-full border p-2 rounded bg-slate-50">
+                            </div>
                         </div>
+
                         <div class="mt-4 pt-4 border-t flex justify-between items-end">
                             <div><p class="text-3xl font-bold text-teal-600" id="countDisplay">0</p><p class="text-sm text-slate-500">Selected</p></div>
-                            <div class="text-right"><p class="text-xs text-slate-400">Total Database</p><p class="font-semibold" id="totalDisplay">0</p></div>
+                            <div class="text-right"><p class="text-xs text-slate-400">Total</p><p class="font-semibold" id="totalDisplay">0</p></div>
                         </div>
                     </div>
 
@@ -82,36 +100,38 @@
 
                 <div class="lg:col-span-8 space-y-6">
                     <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                        
+                        <div class="mb-6 bg-teal-50 p-4 rounded-lg border border-teal-100 flex items-center justify-between">
+                            <label class="text-sm font-semibold text-teal-800">Load Template:</label>
+                            <select id="templateSelector" onchange="loadTemplate()" class="ml-4 flex-1 border-gray-300 rounded-md shadow-sm p-2 text-sm focus:ring-teal-500 focus:border-teal-500">
+                                <option value="">-- Select a Template --</option>
+                                </select>
+                        </div>
+
                         <div class="grid grid-cols-2 gap-4 mb-4">
-                            <label class="block text-sm font-medium mb-1">Sender Name</label>
                             <input type="text" id="senderName" value="SVA Admin" class="border p-2 rounded" placeholder="Sender Name">
-                            <label class="block text-sm font-medium mb-1">Reply-To Email</label>
                             <input type="email" id="replyTo" value="info@svaschool.org" class="border p-2 rounded" placeholder="Reply-To">
                         </div>
-                        <label class="block text-sm font-medium mb-1">Subject</label>
                         <input type="text" id="subject" placeholder="Email Subject" class="w-full border p-2 rounded mb-4 font-medium">
 
                         <div class="mb-6">
-                            <label class="block text-sm font-medium text-slate-700 mb-2">Email Content (Drag images directly in)</label>
                             <div id="editor" class="bg-white h-64 mb-4"></div>
-                            
                             <div class="mb-4 text-xs text-slate-500 flex gap-2">
                                 <span class="font-semibold">Variables:</span>
-                                <code class="bg-slate-100 px-1 rounded">{Parent Name}</code> <code class="bg-slate-100 px-1 rounded">{Child Name}</code> <code class="bg-slate-100 px-1 rounded">{Grade}</code>
+                                <code class="bg-slate-100 px-1 rounded">{Parent Name}</code> <code class="bg-slate-100 px-1 rounded">{Child Name}</code>
                             </div>
                         </div>
 
                         <div class="mb-6 border-t pt-6">
-                            <label class="block text-sm font-medium mb-2">File Attachments</label>
+                            <label class="block text-sm font-medium mb-2">Attachments</label>
                              <input id="attachments" type="file" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100" multiple onchange="updateFileCount()" />
                             <div id="fileList" class="mt-2 text-sm text-teal-600 font-medium"></div>
                         </div>
                         
                         <div class="flex justify-between pt-6 border-t">
-                            <button onclick="sendTestEmail()" class="text-slate-500 hover:text-slate-800 text-sm font-medium px-4 py-2 rounded hover:bg-slate-100">Send Test to Me</button>
+                            <button onclick="sendTestEmail()" class="text-slate-500 hover:text-slate-800 text-sm font-medium px-4 py-2 rounded hover:bg-slate-100">Send Test</button>
                             <button id="sendBtn" onclick="sendCampaign()" class="bg-teal-600 text-white font-bold py-3 px-8 rounded-lg shadow hover:bg-teal-700 flex items-center gap-2">
                                 <span>Send Campaign</span>
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
                             </button>
                         </div>
                         <div id="statusArea" class="mt-4 hidden p-4 rounded-lg text-center text-sm font-medium"></div>
@@ -122,38 +142,85 @@
     </div>
 
     <script>
-        // REPLACE WITH YOUR ACTUAL NEW DEPLOYMENT URL
-        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwi7gGsMx3Beqh7O0o8sV3ZfACKLwT5Ysw3H-4YquNwG3hMWnIrY9R-OiBNDcE8Dm8k/exec";
+        // REPLACE WITH YOUR NEW DEPLOYMENT URL
+        const APPS_SCRIPT_URL = "YOUR_NEW_DEPLOYMENT_URL_HERE";
         let USER_TOKEN = null; let USER_EMAIL = null; let allData = []; let filteredData = [];
+        let currentTab = 'teachers'; // Default tab
 
-        // --- EDITOR SETUP (UPDATED) ---
+        // --- TEMPLATE LIBRARY ---
+        const TEMPLATES = {
+            teachers: [
+                { name: "Weekly Update", subject: "Class Update: Week of [Date]", body: "<h3>Salam Parents,</h3><p>Here is what we are learning this week:</p><ul><li><b>Math:</b> [Topic]</li><li><b>Science:</b> [Topic]</li><li><b>Quran:</b> [Surah]</li></ul><p><b>Reminders:</b></p><ul><li>Homework due on Friday</li></ul><p>Best,<br>SVA Teachers</p>" },
+                { name: "Field Trip Permission", subject: "Field Trip: [Location]", body: "<h3>Field Trip Announcement</h3><p>We are excited to visit <b>[Location]</b> on <b>[Date]</b>.</p><p>Please find the permission slip attached. Please sign and return by Friday.</p><p><b>Cost:</b> $10</p><p>JazakAllah Khair,<br>SVA Admin</p>" },
+                { name: "Exam Schedule", subject: "Upcoming Exam Schedule", body: "<h3>Exam Notice</h3><p>Dear {Parent Name},</p><p>This is a reminder that {Child Name}'s exams will begin next week. Please ensure they get a good night's rest.</p>" }
+            ],
+            donors: [
+                { name: "Donation Thank You", subject: "Thank you for your support!", body: "<h3>JazakAllah Khair</h3><p>Dear {Parent Name},</p><p>We are incredibly grateful for your generous support of Silicon Valley Academy. Your contribution helps us build a brighter future for our students.</p><p>Sincerely,<br>The Board</p>" },
+                { name: "Fundraising Gala Invite", subject: "Invitation: Annual SVA Gala", body: "<h3>You are invited!</h3><p>Join us for an evening of community and inspiration.</p><p><b>Date:</b> March 15th<br><b>Time:</b> 6:00 PM</p><p>RSVP Here: [Link]</p>" }
+            ],
+            general: [
+                { name: "School Closure (Weather)", subject: "URGENT: School Closed Tomorrow", body: "<h3>School Closure Notice</h3><p>Due to severe weather conditions, SVA will be closed tomorrow. Classes will resume on [Date].</p><p>Stay safe!</p>" },
+                { name: "Principal's Message", subject: "Message from the Principal", body: "<h3>Salam Alaykum Families,</h3><p>I hope this message finds you well. As we enter the second semester...</p>" },
+                { name: "General Announcement", subject: "Important School Announcement", body: "<h3>Announcement</h3><p>Dear Parents,</p><p>[Type your announcement here]</p>" }
+            ]
+        };
+
+        // --- EDITOR SETUP ---
         var quill = new Quill('#editor', {
-            theme: 'snow',
-            placeholder: 'Draft message here. Drag & drop images...',
-            modules: {
-                toolbar: [
-                    [{ 'header': [1, 2, false] }],
-                    ['bold', 'italic', 'underline', 'link'],
-                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                    [{ 'color': [] }, { 'background': [] }],
-                    ['image', 'clean'] // 'image' added explicitly
-                ]
+            theme: 'snow', placeholder: 'Draft message here...',
+            modules: { toolbar: [ [{ 'header': [1, 2, false] }], ['bold', 'italic', 'underline', 'link'], [{ 'list': 'ordered'}, { 'list': 'bullet' }], [{ 'color': [] }], ['image', 'clean'] ] }
+        });
+
+        // --- TAB LOGIC ---
+        function switchTab(tabName) {
+            currentTab = tabName;
+            
+            // 1. Update Tab Visuals
+            ['teachers', 'donors', 'general'].forEach(t => {
+                const btn = document.getElementById(`tab-${t}`);
+                if (t === tabName) {
+                    btn.className = "tab-active py-4 px-1 text-sm font-medium border-b-2 border-teal-600 text-teal-600";
+                } else {
+                    btn.className = "tab-inactive py-4 px-1 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700";
+                }
+            });
+
+            // 2. Show/Hide Filters
+            const tierFilter = document.getElementById('filterTierContainer');
+            const jobFilter = document.getElementById('filterJobContainer');
+            
+            if (tabName === 'donors') {
+                tierFilter.classList.remove('hidden');
+                jobFilter.classList.remove('hidden');
+            } else {
+                tierFilter.classList.add('hidden');
+                jobFilter.classList.add('hidden');
             }
-        });
 
-        // Listen for changes and update HTML preview
-        quill.on('text-change', function() {
-            document.getElementById('htmlPreview').value = quill.root.innerHTML;
-        });
+            // 3. Populate Templates
+            const selector = document.getElementById('templateSelector');
+            selector.innerHTML = '<option value="">-- Select a Template --</option>';
+            TEMPLATES[tabName].forEach((tpl, index) => {
+                selector.innerHTML += `<option value="${index}">${tpl.name}</option>`;
+            });
 
-        function copyHtml() {
-             const html = document.getElementById('htmlPreview');
-             html.select();
-             document.execCommand('copy');
-             alert("HTML copied to clipboard!");
+            // 4. Reset & Re-apply Filters
+            document.getElementById('filterGrade').value = 'All';
+            document.getElementById('filterTier').value = 'All';
+            document.getElementById('filterJob').value = '';
+            applyFilters();
         }
 
-        // --- LOGIN & DATA FETCHING (Keep your existing logic here) ---
+        function loadTemplate() {
+            const index = document.getElementById('templateSelector').value;
+            if (index === "") return;
+            
+            const tpl = TEMPLATES[currentTab][index];
+            document.getElementById('subject').value = tpl.subject;
+            quill.clipboard.dangerouslyPasteHTML(tpl.body);
+        }
+
+        // --- LOGIN & DATA ---
         function handleCredentialResponse(response) {
             USER_TOKEN = response.credential;
             const payload = JSON.parse(atob(response.credential.split('.')[1]));
@@ -161,14 +228,11 @@
             document.getElementById('userEmailDisplay').innerText = USER_EMAIL;
             fetchData();
         }
-
         function logout() { USER_TOKEN = null; location.reload(); }
 
         async function fetchData() {
             const statusDiv = document.getElementById('loginStatus');
-            statusDiv.classList.remove('hidden');
-            statusDiv.innerHTML = '<span class="loader border-t-teal-600 w-4 h-4 mr-2"></span> Verifying & Loading...';
-            statusDiv.className = "mt-4 text-sm font-medium text-slate-500 flex items-center justify-center";
+            statusDiv.classList.remove('hidden'); statusDiv.innerText = "Loading...";
             try {
                 const response = await fetch(APPS_SCRIPT_URL, {
                     method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -176,44 +240,53 @@
                 });
                 const json = await response.json();
                 if (json.error) throw new Error(json.error);
-                allData = json.data; populateFilters(); applyFilters();
+                allData = json.data; 
+                populateFilters(); 
+                switchTab('teachers'); // Initialize with Teacher tab
                 document.getElementById('loginOverlay').classList.add('hidden');
                 document.getElementById('appContainer').classList.remove('hidden');
-            } catch (e) {
-                statusDiv.innerText = "Error: " + e.message; statusDiv.className = "mt-4 text-sm font-medium text-red-500 text-center";
-            }
+            } catch (e) { statusDiv.innerText = "Error: " + e.message; }
         }
 
-        // --- FILTERS & UI UPDATES (PRIVACY CHANGE HERE) ---
+        // --- FILTERING ---
         function populateFilters() {
-             // Keep existing logic to populate selects
             const grades = [...new Set(allData.map(d => d.Grade))].filter(Boolean).sort();
             const tiers = [...new Set(allData.map(d => d['Donation Tier']))].filter(Boolean).sort();
-            const gSel = document.getElementById('filterGrade'); const tSel = document.getElementById('filterTier');
-            gSel.innerHTML = '<option value="All">All Grades</option>'; tSel.innerHTML = '<option value="All">All Tiers</option>';
+            
+            const gSel = document.getElementById('filterGrade');
+            const tSel = document.getElementById('filterTier');
+            
+            gSel.innerHTML = '<option value="All">All Grades</option>';
+            tSel.innerHTML = '<option value="All">All Tiers</option>';
+            
             grades.forEach(g => gSel.innerHTML += `<option value="${g}">${g}</option>`);
             tiers.forEach(t => tSel.innerHTML += `<option value="${t}">${t}</option>`);
             document.getElementById('totalDisplay').innerText = allData.length;
         }
 
         function applyFilters() {
-            // Keep existing filter logic
             const grade = document.getElementById('filterGrade').value;
             const tier = document.getElementById('filterTier').value;
             const job = document.getElementById('filterJob').value.toLowerCase();
+
             filteredData = allData.filter(d => {
-                const mG = grade === 'All' || d.Grade == grade;
-                const mT = tier === 'All' || d['Donation Tier'] == tier;
-                const jobStr = d.Occupation ? d.Occupation.toString().toLowerCase() : "";
-                const mJ = job === "" || jobStr.includes(job);
-                return mG && mT && mJ;
+                // Grade always applies
+                const matchGrade = grade === 'All' || d.Grade == grade;
+                
+                // Tier & Job only apply on Donor tab
+                let matchTier = true;
+                let matchJob = true;
+
+                if (currentTab === 'donors') {
+                    matchTier = tier === 'All' || d['Donation Tier'] == tier;
+                    const jobStr = d.Occupation ? d.Occupation.toString().toLowerCase() : "";
+                    matchJob = job === "" || jobStr.includes(job);
+                }
+
+                return matchGrade && matchTier && matchJob;
             });
             updateUI();
         }
-
-
-
-
 
         function updateUI() {
             document.getElementById('countDisplay').innerText = filteredData.length;
@@ -223,9 +296,7 @@
             const preview = filteredData.slice(0, 100);
             let html = '';
             preview.forEach(row => {
-                // --- INITIALS LOGIC ---
                 const fullName = row['Parent Name'] || "Unknown";
-                // Split name, take first char of each part, join with dots
                 const initials = fullName.split(" ").map(n => n[0].toUpperCase()).join(". ") + ".";
 
                 html += `
@@ -241,62 +312,16 @@
             list.innerHTML = html;
         }
 
-
-   /**     
-
-        function updateUI() {
-            document.getElementById('countDisplay').innerText = filteredData.length;
-            const list = document.getElementById('previewList');
-            if (filteredData.length === 0) { list.innerHTML = '<div class="text-center text-slate-400 text-sm p-4">No matches.</div>'; return; }
-            
-            // Show top 100 for performance
-            const preview = filteredData.slice(0, 100);
-            let html = '';
-            preview.forEach(row => {
-                // --- PRIVACY CHANGE: Replaced Email with generic text ---
-                html += `
-                    <div class="flex justify-between items-center p-2 hover:bg-slate-50 border-b border-slate-50 last:border-0">
-                        <div class="truncate w-2/3">
-                            <div class="font-medium text-slate-700 text-sm truncate">${row['Parent Name']}</div>
-                            <div class="text-xs text-slate-400 truncate flex items-center gap-1">
-                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
-                                Contact on file
-                            </div>
-                        </div>
-                        <div class="text-xs bg-slate-100 text-slate-500 px-2 py-1 rounded-full">${row.Grade}</div>
-                    </div>
-                `;
-            });
-            if (filteredData.length > 100) html += `<div class="text-center text-xs text-slate-400 p-2 italic">+ ${filteredData.length - 100} more...</div>`;
-            list.innerHTML = html;
-        } */
-
-        // --- SENDING LOGIC (Keep existing) ---
-        function updateFileCount() {
-             const count = document.getElementById('attachments').files.length;
-             document.getElementById('fileList').innerText = count === 0 ? "" : `${count} file(s) selected`;
-        }
+        // --- SENDING LOGIC (Standard) ---
+        function updateFileCount() { document.getElementById('fileList').innerText = document.getElementById('attachments').files.length + " file(s)"; }
         const getBase64 = (file) => new Promise((resolve) => {
             const reader = new FileReader(); reader.readAsDataURL(file);
             reader.onload = () => resolve({ name: file.name, mime: file.type, data: reader.result.split(',')[1] });
         });
 
-        async function sendCampaign() {
-            if (filteredData.length === 0) return alert("Select recipients.");
-            if (!document.getElementById('subject').value) return alert("Subject required.");
-            if (!confirm(`Send to ${filteredData.length} parents?`)) return;
-            await performSend(filteredData);
-        }
-        async function sendTestEmail() {
-            const testParent = [{ 'Parent Name': "Test Admin", 'Child Name': "Test Student", 'Grade': "Test", 'Email': USER_EMAIL, '_rowIndex': -1 }];
-            await performSend(testParent, true);
-        }
-
         async function performSend(recipients, isTest = false) {
             const btn = document.getElementById('sendBtn'); const statusArea = document.getElementById('statusArea');
-            btn.disabled = true; btn.innerHTML = `<span class="loader border-t-white w-4 h-4 mr-2"></span> Sending...`;
-            statusArea.classList.remove('hidden'); statusArea.className = "mt-4 p-4 rounded-lg text-center text-sm font-medium bg-blue-50 text-blue-700";
-            statusArea.innerText = "Uploading & processing...";
+            btn.disabled = true; btn.innerText = "Sending..."; statusArea.classList.remove('hidden'); statusArea.innerText = "Processing...";
             try {
                 const attachments = await Promise.all([...document.getElementById('attachments').files].map(getBase64));
                 const payload = {
@@ -305,7 +330,7 @@
                         senderName: document.getElementById('senderName').value,
                         replyTo: document.getElementById('replyTo').value,
                         subject: (isTest ? "[TEST] " : "") + document.getElementById('subject').value,
-                        body: quill.root.innerHTML, // Sends HTML with base64 images
+                        body: quill.root.innerHTML,
                         attachments: attachments
                     }
                 };
@@ -314,19 +339,14 @@
                 });
                 const json = await response.json();
                 if (json.error) throw new Error(json.error);
-                
-                statusArea.className = "mt-4 p-4 rounded-lg text-center text-sm font-medium bg-green-100 text-green-800";
-                statusArea.innerHTML = `Success! Sent: <b>${json.result.sent}</b>. <br>Confirmation sent to ${USER_EMAIL}.`;
-                btn.innerHTML = `<span>Sent Successfully</span>`; btn.classList.remove('bg-teal-600', 'hover:bg-teal-700'); btn.classList.add('bg-green-600', 'hover:bg-green-700');
-                setTimeout(() => {
-                    btn.disabled = false; btn.innerHTML = `<span>Send Campaign</span> <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>`;
-                    btn.classList.add('bg-teal-600', 'hover:bg-teal-700'); btn.classList.remove('bg-green-600', 'hover:bg-green-700');
-                }, 3000);
+                statusArea.innerHTML = `<span class="text-green-600">Sent: ${json.result.sent}</span>`;
+                btn.innerText = "Sent!";
             } catch (e) {
-                statusArea.className = "mt-4 p-4 rounded-lg text-center text-sm font-medium bg-red-100 text-red-700";
-                statusArea.innerText = "Failed: " + e.message; btn.disabled = false; btn.innerHTML = "Retry Sending";
+                statusArea.innerText = "Error: " + e.message; btn.disabled = false; btn.innerText = "Retry";
             }
         }
+        function sendCampaign() { if(confirm("Send?")) performSend(filteredData); }
+        function sendTestEmail() { performSend([{ 'Parent Name': "Test", 'Email': USER_EMAIL }], true); }
     </script>
 </body>
 </html>
