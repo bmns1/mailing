@@ -59,8 +59,11 @@
                     <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
                         <h2 class="font-bold text-slate-800 mb-4">Filter Audience</h2>
                         <div class="space-y-4">
+                            <label class="label-text">Filter by Grade</label>
                             <select id="filterGrade" onchange="applyFilters()" class="w-full border p-2 rounded bg-slate-50"><option value="All">All Grades</option></select>
+                            <label class="label-text">Filter by Donation Tier</label>
                             <select id="filterTier" onchange="applyFilters()" class="w-full border p-2 rounded bg-slate-50"><option value="All">All Tiers</option></select>
+                            <label class="label-text">Filter by Occupation</label>
                             <input type="text" id="filterJob" onkeyup="applyFilters()" placeholder="Occupation Search..." class="w-full border p-2 rounded bg-slate-50">
                         </div>
                         <div class="mt-4 pt-4 border-t flex justify-between items-end">
