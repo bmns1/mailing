@@ -4,132 +4,206 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SVA Admin Portal</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
     <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
     <script src="https://accounts.google.com/gsi/client" async defer></script>
-</head>
-<body class="bg-slate-100 min-h-screen font-sans">
 
-    <div id="loginOverlay" class="fixed inset-0 bg-slate-900 z-50 flex flex-col items-center justify-center">
-        <div class="bg-white p-8 rounded-xl shadow-2xl text-center max-w-md w-full">
+    <style>
+        body { font-family: 'Inter', system-ui, sans-serif; background-color: #f1f5f9; }
+        /* SVA Teal Customization */
+        .bg-sva { background-color: #0d9488; }
+        .text-sva { color: #0d9488; }
+        .border-sva { border-color: #0d9488; }
+        .btn-primary { @apply bg-teal-600 text-white font-semibold py-2 px-4 rounded shadow hover:bg-teal-700 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed; }
+        /* Spinner */
+        .loader { border: 3px solid #f3f3f3; border-top: 3px solid #0d9488; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; display: inline-block; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="text-slate-800">
+
+    <div id="loginOverlay" class="fixed inset-0 z-50 bg-slate-900/95 flex flex-col items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
+            <div class="mb-6 flex justify-center">
+                <div class="w-16 h-16 bg-teal-100 rounded-full flex items-center justify-center">
+                    <svg class="w-8 h-8 text-teal-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                </div>
+            </div>
             <h1 class="text-2xl font-bold text-slate-800 mb-2">SVA Admin Access</h1>
-            <p class="text-slate-500 mb-6">Please sign in to access the mailing tools.</p>
+            <p class="text-slate-500 mb-8 text-sm">Sign in with your authorized Google account to access the mailing tools.</p>
             
             <div id="g_id_onload"
                  data-client_id="14216824305-v19ecsmrhk1muaglrlhjceqjk5oeqr4n.apps.googleusercontent.com"
                  data-callback="handleCredentialResponse"
                  data-auto_select="false">
             </div>
-            <div class="g_id_signin" data-type="standard" data-size="large" data-theme="filled_blue" data-text="sign_in_with" data-shape="rectangular" data-logo_alignment="left"></div>
+            <div class="g_id_signin" data-type="standard" data-size="large" data-theme="filled_blue" data-text="sign_in_with" data-shape="rectangular" data-logo_alignment="center"></div>
             
-            <p id="loginError" class="text-red-500 mt-4 text-sm hidden"></p>
+            <div id="loginStatus" class="mt-4 text-sm font-medium text-red-500 hidden"></div>
         </div>
     </div>
 
-    <div id="appContainer" class="hidden p-6 max-w-7xl mx-auto">
-        <div class="flex justify-between items-center mb-8">
-            <h1 class="text-3xl font-bold text-slate-800">Admin Comms Center</h1>
-            <div class="flex items-center gap-4">
-                <span id="userDisplay" class="text-sm font-medium text-slate-600"></span>
-                <button onclick="logout()" class="text-xs text-red-600 hover:underline">Sign Out</button>
+    <div id="appContainer" class="hidden min-h-screen">
+        
+        <header class="bg-white border-b border-slate-200 sticky top-0 z-40">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <span class="bg-teal-600 text-white text-xs font-bold px-2 py-1 rounded">ADMIN</span>
+                    <h1 class="text-lg font-bold text-slate-800">Communications Center</h1>
+                </div>
+                <div class="flex items-center gap-4 text-sm">
+                    <span id="userEmailDisplay" class="text-slate-500"></span>
+                    <button onclick="logout()" class="text-red-600 hover:text-red-800 font-medium">Sign Out</button>
+                </div>
             </div>
-        </div>
+        </header>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div class="bg-white p-6 rounded-xl shadow-sm border h-fit">
-                <h2 class="font-bold text-slate-700 mb-4">Filter Recipients</h2>
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
                 
-                <div class="space-y-4">
-                    <select id="filterGrade" class="w-full border p-2 rounded" onchange="applyFilters()">
-                        <option value="All">All Grades</option>
-                    </select>
-                    <select id="filterTier" class="w-full border p-2 rounded" onchange="applyFilters()">
-                        <option value="All">All Tiers</option>
-                    </select>
-                    <input type="text" id="filterJob" placeholder="Filter by Job..." class="w-full border p-2 rounded" onkeyup="applyFilters()">
+                <div class="lg:col-span-4 space-y-6">
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+                        <h2 class="font-semibold text-slate-800 mb-4 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
+                            Filter Audience
+                        </h2>
+                        
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Grade Level</label>
+                                <select id="filterGrade" onchange="applyFilters()" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-teal-500 focus:outline-none bg-slate-50">
+                                    <option value="All">All Grades</option>
+                                    </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Donation Tier</label>
+                                <select id="filterTier" onchange="applyFilters()" class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-teal-500 focus:outline-none bg-slate-50">
+                                    <option value="All">All Tiers</option>
+                                    </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Occupation Search</label>
+                                <input type="text" id="filterJob" onkeyup="applyFilters()" placeholder="e.g. Engineer, Doctor..." class="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                            </div>
+                        </div>
+
+                        <div class="mt-6 pt-6 border-t border-slate-100">
+                            <div class="flex justify-between items-end">
+                                <div>
+                                    <p class="text-sm text-slate-500">Recipients Selected</p>
+                                    <p class="text-3xl font-bold text-teal-600" id="countDisplay">0</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-xs text-slate-400 mb-1">Total Database</p>
+                                    <p class="text-sm font-semibold text-slate-700" id="totalDisplay">0</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-0 overflow-hidden max-h-96 flex flex-col">
+                        <div class="p-4 border-b border-slate-100 bg-slate-50 font-medium text-slate-600 text-sm">Preview List</div>
+                        <div id="previewList" class="overflow-y-auto p-2 space-y-1">
+                            <div class="text-center text-slate-400 text-sm p-4">Loading data...</div>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="mt-6 pt-6 border-t">
-                    <div class="text-4xl font-bold text-teal-600" id="countDisplay">0</div>
-                    <div class="text-sm text-slate-500">Recipients Selected</div>
+                <div class="lg:col-span-8 space-y-6">
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                        <div class="grid grid-cols-2 gap-6 mb-6">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Sender Name</label>
+                                <input type="text" id="senderName" value="SVA Administration" class="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-teal-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Reply-To Address</label>
+                                <input type="email" id="replyTo" value="info@svaschool.org" class="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-teal-500 outline-none">
+                            </div>
+                        </div>
+                        
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Subject Line</label>
+                            <input type="text" id="subject" placeholder="Important Update regarding..." class="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-teal-500 outline-none font-medium">
+                        </div>
+
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-slate-700 mb-2">Email Content</label>
+                            <div id="editor" class="bg-white h-64 text-base"></div>
+                            <div class="mt-2 text-xs text-slate-500 flex gap-2">
+                                <span class="font-semibold">Available Variables:</span>
+                                <code class="bg-slate-100 px-1 rounded">{Parent Name}</code>
+                                <code class="bg-slate-100 px-1 rounded">{Child Name}</code>
+                                <code class="bg-slate-100 px-1 rounded">{Grade}</code>
+                            </div>
+                        </div>
+
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-slate-700 mb-2">Attachments</label>
+                            <label class="flex items-center justify-center w-full h-24 border-2 border-slate-300 border-dashed rounded-lg cursor-pointer bg-slate-50 hover:bg-slate-100 transition">
+                                <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                                    <svg class="w-6 h-6 text-slate-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                                    <p class="text-sm text-slate-500"><span class="font-semibold">Click to upload</span> or drag and drop</p>
+                                </div>
+                                <input id="attachments" type="file" class="hidden" multiple onchange="updateFileCount()" />
+                            </label>
+                            <div id="fileList" class="mt-2 text-sm text-teal-600 font-medium"></div>
+                        </div>
+
+                        <div class="flex items-center justify-between pt-6 border-t border-slate-100">
+                            <button onclick="sendTestEmail()" class="text-slate-500 hover:text-slate-800 text-sm font-medium px-4 py-2 rounded hover:bg-slate-100 transition">
+                                Send Test to Me
+                            </button>
+                            <button id="sendBtn" onclick="sendCampaign()" class="bg-teal-600 text-white font-bold py-3 px-8 rounded-lg shadow-lg hover:bg-teal-700 hover:shadow-xl transition transform active:scale-95 flex items-center gap-2">
+                                <span>Send Campaign</span>
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                            </button>
+                        </div>
+                        
+                        <div id="statusArea" class="mt-4 hidden p-4 rounded-lg text-center text-sm font-medium"></div>
+                    </div>
                 </div>
             </div>
-
-            <div class="lg:col-span-2 space-y-6">
-                <div class="bg-white p-6 rounded-xl shadow-sm border">
-                    <div class="grid grid-cols-2 gap-4 mb-4">
-                        <input id="senderName" type="text" value="SVA Admin" class="border p-2 rounded" placeholder="Sender Name">
-                        <input id="replyTo" type="text" value="info@svaschool.org" class="border p-2 rounded" placeholder="Reply-To">
-                    </div>
-                    <input id="subject" type="text" class="w-full border p-2 rounded mb-4" placeholder="Email Subject">
-                    
-                    <div id="editor" class="h-64 bg-white"></div>
-                    
-                    <div class="mt-4">
-                        <input type="file" id="attachments" multiple class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:bg-teal-50 file:text-teal-700">
-                    </div>
-                </div>
-
-                <button onclick="sendEmails()" id="sendBtn" class="w-full bg-teal-600 text-white font-bold py-4 rounded-xl shadow hover:bg-teal-700 transition">
-                    Send Campaign
-                </button>
-                <div id="statusMsg" class="text-center font-bold"></div>
-            </div>
-        </div>
+        </main>
     </div>
 
+    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
     <script>
+        // --- CONFIGURATION ---
         const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyi9LNsOwoZ5l0KghUpRXWweIaycArR1Ygsd1nGDZXDTXzdhByo1VxA-rNtLxbfAqGA/exec";
+        
         let USER_TOKEN = null;
+        let USER_EMAIL = null;
         let allData = [];
         let filteredData = [];
 
-        // --- 1. LOGIN LOGIC ---
-        function handleCredentialResponse(response) {
-            USER_TOKEN = response.credential; // This is the Google ID Token
-            
-            // Decode token just to show name (Security happens on backend)
-            const payload = JSON.parse(atob(response.credential.split('.')[1]));
-            document.getElementById('userDisplay').innerText = payload.email;
-
-            // Fetch Data from Backend using the Token
-            fetchData();
-        }
-
-        async function fetchData() {
-            const errorMsg = document.getElementById('loginError');
-            errorMsg.classList.add('hidden');
-            
-            try {
-                // Send Token to Backend to prove identity
-                const res = await fetch(APPS_SCRIPT_URL, {
-                    method: "POST",
-                    body: JSON.stringify({ 
-                        action: 'getData', 
-                        token: USER_TOKEN 
-                    })
-                });
-                
-                const json = await res.json();
-                
-                if (json.error) {
-                    throw new Error(json.error);
-                }
-
-                // If success, unlock the UI
-                allData = json.data;
-                populateFilters();
-                applyFilters();
-                
-                document.getElementById('loginOverlay').classList.add('hidden');
-                document.getElementById('appContainer').classList.remove('hidden');
-
-            } catch (e) {
-                errorMsg.innerText = e.message;
-                errorMsg.classList.remove('hidden');
-                console.error(e);
+        // Initialize Quill Editor
+        var quill = new Quill('#editor', {
+            theme: 'snow',
+            placeholder: 'Draft your message here...',
+            modules: {
+                toolbar: [
+                    [{ 'header': [1, 2, false] }],
+                    ['bold', 'italic', 'underline', 'link'],
+                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                    [{ 'color': [] }, { 'background': [] }],
+                    ['clean']
+                ]
             }
+        });
+
+        // --- 1. LOGIN HANDLER ---
+        function handleCredentialResponse(response) {
+            USER_TOKEN = response.credential;
+            
+            // Decode token locally for UI only (Security is on backend)
+            const payload = JSON.parse(atob(response.credential.split('.')[1]));
+            USER_EMAIL = payload.email;
+            document.getElementById('userEmailDisplay').innerText = USER_EMAIL;
+
+            // Trigger Data Load
+            fetchData();
         }
 
         function logout() {
@@ -137,18 +211,62 @@
             location.reload();
         }
 
-        // --- 2. APP LOGIC ---
-        var quill = new Quill('#editor', { theme: 'snow' });
+        // --- 2. DATA FETCHING (CORS FIX APPLIED) ---
+        async function fetchData() {
+            const statusDiv = document.getElementById('loginStatus');
+            statusDiv.classList.remove('hidden');
+            statusDiv.innerHTML = '<span class="loader border-t-teal-600 w-4 h-4 mr-2"></span> Verifying & Loading Data...';
+            statusDiv.className = "mt-4 text-sm font-medium text-slate-500 flex items-center justify-center";
 
+            try {
+                // We use 'text/plain' to avoid CORS Preflight failure
+                const response = await fetch(APPS_SCRIPT_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "text/plain;charset=utf-8" },
+                    body: JSON.stringify({ 
+                        action: 'getData', 
+                        token: USER_TOKEN 
+                    })
+                });
+
+                const json = await response.json();
+
+                if (json.error) {
+                    throw new Error(json.error);
+                }
+
+                // Success
+                allData = json.data;
+                populateFilters();
+                applyFilters(); // Initial render
+
+                // Switch Views
+                document.getElementById('loginOverlay').classList.add('hidden');
+                document.getElementById('appContainer').classList.remove('hidden');
+
+            } catch (e) {
+                statusDiv.innerText = "Error: " + e.message;
+                statusDiv.classList.add('text-red-500');
+                console.error("Fetch Error:", e);
+            }
+        }
+
+        // --- 3. FILTER LOGIC ---
         function populateFilters() {
-            const grades = [...new Set(allData.map(d => d.Grade))].sort();
+            const grades = [...new Set(allData.map(d => d.Grade))].filter(Boolean).sort();
             const tiers = [...new Set(allData.map(d => d['Donation Tier']))].filter(Boolean).sort();
             
             const gSel = document.getElementById('filterGrade');
             const tSel = document.getElementById('filterTier');
             
+            // Clear existing options except "All"
+            gSel.innerHTML = '<option value="All">All Grades</option>';
+            tSel.innerHTML = '<option value="All">All Tiers</option>';
+
             grades.forEach(g => gSel.innerHTML += `<option value="${g}">${g}</option>`);
             tiers.forEach(t => tSel.innerHTML += `<option value="${t}">${t}</option>`);
+            
+            document.getElementById('totalDisplay').innerText = allData.length;
         }
 
         function applyFilters() {
@@ -157,63 +275,148 @@
             const job = document.getElementById('filterJob').value.toLowerCase();
 
             filteredData = allData.filter(d => {
-                return (grade === 'All' || d.Grade == grade) &&
-                       (tier === 'All' || d['Donation Tier'] == tier) &&
-                       (!job || (d.Occupation && d.Occupation.toLowerCase().includes(job)));
+                const mG = grade === 'All' || d.Grade == grade;
+                const mT = tier === 'All' || d['Donation Tier'] == tier;
+                // Safe check for occupation existence
+                const jobStr = d.Occupation ? d.Occupation.toString().toLowerCase() : "";
+                const mJ = job === "" || jobStr.includes(job);
+                return mG && mT && mJ;
             });
 
-            document.getElementById('countDisplay').innerText = filteredData.length;
+            updateUI();
         }
 
-        // --- 3. SENDING LOGIC ---
+        function updateUI() {
+            document.getElementById('countDisplay').innerText = filteredData.length;
+            
+            const list = document.getElementById('previewList');
+            if (filteredData.length === 0) {
+                list.innerHTML = '<div class="text-center text-slate-400 text-sm p-4">No matches found.</div>';
+                return;
+            }
+
+            // Show first 50 results for performance
+            const preview = filteredData.slice(0, 50);
+            let html = '';
+            preview.forEach(row => {
+                html += `
+                    <div class="flex justify-between items-center p-2 hover:bg-slate-50 border-b border-slate-50 last:border-0">
+                        <div class="truncate w-2/3">
+                            <div class="font-medium text-slate-700 text-xs truncate">${row['Parent Name']}</div>
+                            <div class="text-[10px] text-slate-400 truncate">${row.Email}</div>
+                        </div>
+                        <div class="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded">${row.Grade}</div>
+                    </div>
+                `;
+            });
+            
+            if (filteredData.length > 50) {
+                html += `<div class="text-center text-xs text-slate-400 p-2 italic">+ ${filteredData.length - 50} more...</div>`;
+            }
+            list.innerHTML = html;
+        }
+
+        // --- 4. FILE & SENDING LOGIC ---
+        
+        function updateFileCount() {
+            const count = document.getElementById('attachments').files.length;
+            const label = count === 0 ? "" : `${count} file(s) selected`;
+            document.getElementById('fileList').innerText = label;
+        }
+
         const getBase64 = (file) => new Promise((resolve) => {
             const reader = new FileReader();
             reader.readAsDataURL(file);
             reader.onload = () => resolve({
                 name: file.name,
                 mime: file.type,
-                data: reader.result.split(',')[1]
+                data: reader.result.split(',')[1] // Strip metadata prefix
             });
         });
 
-        async function sendEmails() {
-            if (!confirm(`Send to ${filteredData.length} recipients?`)) return;
+        async function sendCampaign() {
+            if (filteredData.length === 0) return alert("Please select recipients first.");
+            if (!document.getElementById('subject').value) return alert("Subject is required.");
             
-            const btn = document.getElementById('sendBtn');
-            btn.disabled = true;
-            btn.innerText = "Sending...";
-            
-            const attachments = await Promise.all([...document.getElementById('attachments').files].map(getBase64));
+            if (!confirm(`Are you sure you want to send this email to ${filteredData.length} parents?`)) return;
 
-            const payload = {
-                action: 'sendEmail',
-                token: USER_TOKEN, // Send token again for security!
-                recipients: filteredData,
-                emailData: {
-                    senderName: document.getElementById('senderName').value,
-                    replyTo: document.getElementById('replyTo').value,
-                    subject: document.getElementById('subject').value,
-                    body: quill.root.innerHTML,
-                    attachments: attachments
-                }
-            };
+            await performSend(filteredData);
+        }
+
+        async function sendTestEmail() {
+            // Create a dummy parent object using the Admin's email
+            const testParent = [{
+                'Parent Name': "Test Parent (You)",
+                'Child Name': "Test Student",
+                'Grade': "Test",
+                'Email': USER_EMAIL, // Sends to logged-in admin
+                '_rowIndex': -1
+            }];
+            
+            await performSend(testParent, true);
+        }
+
+        async function performSend(recipients, isTest = false) {
+            const btn = document.getElementById('sendBtn');
+            const statusArea = document.getElementById('statusArea');
+            
+            // UI Loading State
+            btn.disabled = true;
+            btn.innerHTML = `<span class="loader border-t-white w-4 h-4 mr-2"></span> Sending...`;
+            statusArea.classList.remove('hidden');
+            statusArea.className = "mt-4 p-4 rounded-lg text-center text-sm font-medium bg-blue-50 text-blue-700";
+            statusArea.innerText = "Processing attachments & sending emails...";
 
             try {
-                const res = await fetch(APPS_SCRIPT_URL, {
+                // 1. Convert Files
+                const fileInput = document.getElementById('attachments');
+                const attachments = await Promise.all([...fileInput.files].map(getBase64));
+
+                // 2. Prepare Payload
+                const payload = {
+                    action: 'sendEmail',
+                    token: USER_TOKEN,
+                    recipients: recipients,
+                    emailData: {
+                        senderName: document.getElementById('senderName').value,
+                        replyTo: document.getElementById('replyTo').value,
+                        subject: (isTest ? "[TEST] " : "") + document.getElementById('subject').value,
+                        body: quill.root.innerHTML,
+                        attachments: attachments
+                    }
+                };
+
+                // 3. Send POST (Text/Plain to fix CORS)
+                const response = await fetch(APPS_SCRIPT_URL, {
                     method: "POST",
+                    headers: { "Content-Type": "text/plain;charset=utf-8" },
                     body: JSON.stringify(payload)
                 });
-                const json = await res.json();
-                
+
+                const json = await response.json();
+
                 if (json.error) throw new Error(json.error);
+
+                // 4. Success UI
+                statusArea.className = "mt-4 p-4 rounded-lg text-center text-sm font-medium bg-green-100 text-green-800";
+                statusArea.innerText = `Success! Sent: ${json.result.sent}`;
+                btn.innerHTML = `<span>Sent Successfully</span>`;
+                btn.classList.remove('bg-teal-600', 'hover:bg-teal-700');
+                btn.classList.add('bg-green-600', 'hover:bg-green-700');
                 
-                btn.innerText = "Sent Successfully!";
-                btn.classList.add("bg-green-600");
-                document.getElementById('statusMsg').innerText = `Sent: ${json.result.sent}`;
+                setTimeout(() => {
+                    btn.disabled = false;
+                    btn.innerHTML = `<span>Send Campaign</span> <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>`;
+                    btn.classList.add('bg-teal-600', 'hover:bg-teal-700');
+                    btn.classList.remove('bg-green-600', 'hover:bg-green-700');
+                }, 3000);
+
             } catch (e) {
-                alert("Error: " + e.message);
+                console.error(e);
+                statusArea.className = "mt-4 p-4 rounded-lg text-center text-sm font-medium bg-red-100 text-red-700";
+                statusArea.innerText = "Failed: " + e.message;
                 btn.disabled = false;
-                btn.innerText = "Send Campaign";
+                btn.innerHTML = "Retry Sending";
             }
         }
     </script>
