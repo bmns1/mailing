@@ -9,6 +9,7 @@
     <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
     <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
 
     <style>
         body { font-family: 'Inter', system-ui, sans-serif; background-color: #f8fafc; }
@@ -26,7 +27,7 @@
     <div id="loginOverlay" class="fixed inset-0 z-50 bg-slate-900/95 flex flex-col items-center justify-center p-4">
         <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
              <div class="mb-6 flex justify-center"><div class="w-16 h-16 bg-teal-100 rounded-full flex items-center justify-center"><svg class="w-8 h-8 text-teal-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg></div></div>
-            <h1 class="text-2xl font-bold text-slate-800 mb-2">SVA Admin Access</h1>
+            <h1 class="text-2xl font-bold text-slate-800 mb-2">SVA Mailing Tool</h1>
             <p class="text-slate-500 mb-8 text-sm">Sign in to access mailing tools.</p>
             <div id="g_id_onload"
                  data-client_id="14216824305-v19ecsmrhk1muaglrlhjceqjk5oeqr4n.apps.googleusercontent.com"
@@ -53,12 +54,41 @@
             </div>
         </header>
 
+        
+
         <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
                 
                 <div class="lg:col-span-4 space-y-6">
-                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
-                        <h2 class="font-bold text-slate-800 mb-4">Filter Audience</h2>
+
+                    
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 mb-6">
+    <h2 class="font-bold text-slate-800 mb-2 flex items-center gap-2">
+        <svg class="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+        Upload Custom List
+    </h2>
+    <p class="text-xs text-slate-500 mb-3">
+        Upload CSV with headers: <code>Email</code>, <code>Parent Name</code><br>
+        <span class="text-slate-400 italic">(Optional: Child Name, Grade)</span>
+    </p>
+    
+    <label class="block">
+        <span class="sr-only">Choose file</span>
+        <input type="file" id="csvInput" accept=".csv" onchange="handleCsvUpload()" class="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100"/>
+    </label>
+
+    <div id="csvStatusArea" class="hidden mt-3 pt-3 border-t border-slate-100">
+        <div class="text-xs font-semibold text-green-600 flex items-center gap-1">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+            <span id="csvCount">0</span> recipients loaded
+        </div>
+        <button onclick="clearCsv()" class="text-xs text-red-500 hover:text-red-700 underline mt-1">Remove CSV & Use Database</button>
+    </div>
+</div>
+
+                    
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5" id="filterGradeContainer">
+                        <h2 class="font-bold text-slate-800 mb-4" id="filterTitle">Filter Audience</h2>
                         <div class="space-y-4">
                             <label class="label-text mb-2 block">Filter by Grade (Select Multiple)</label>
                                 <div id="gradeCheckboxContainer" class="bg-slate-50 border rounded p-3 h-32 overflow-y-auto grid grid-cols-2 gap-2">
@@ -129,6 +159,11 @@
         // REPLACE WITH YOUR ACTUAL NEW DEPLOYMENT URL
         const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwi7gGsMx3Beqh7O0o8sV3ZfACKLwT5Ysw3H-4YquNwG3hMWnIrY9R-OiBNDcE8Dm8k/exec";
         let USER_TOKEN = null; let USER_EMAIL = null; let allData = []; let filteredData = [];
+        // --- GLOBAL VARIABLES ---
+// We add 'originalData' to store the Google Sheet data permanently
+// so we can revert back to it after removing a CSV.
+let originalData = []; 
+let isCsvMode = false;
 
         // --- EDITOR SETUP (UPDATED) ---
         var quill = new Quill('#editor', {
@@ -150,6 +185,94 @@
             document.getElementById('htmlPreview').value = quill.root.innerHTML;
         });
 
+
+
+
+
+// --- NEW CSV FUNCTIONS ---
+
+function handleCsvUpload() {
+    const file = document.getElementById('csvInput').files[0];
+    if (!file) return;
+
+    Papa.parse(file, {
+        header: true, // Expects headers like 'Email', 'Parent Name'
+        skipEmptyLines: true,
+        complete: function(results) {
+            const rows = results.data;
+            
+            // Validation: Check for Email column
+            // We search case-insensitive for 'email'
+            const sample = rows[0];
+            const emailKey = Object.keys(sample).find(k => k.toLowerCase().includes('email'));
+            
+            if (!emailKey) {
+                alert("Error: CSV must have an 'Email' column.");
+                clearCsv();
+                return;
+            }
+
+            // Normalize Data for our App
+            const normalizedData = rows.map(row => {
+                // Find keys case-insensitively
+                const getVal = (keyPart) => {
+                    const k = Object.keys(row).find(key => key.toLowerCase().includes(keyPart));
+                    return k ? row[k] : "";
+                };
+
+                return {
+                    'Email': row[emailKey], // Critical
+                    'Parent Name': getVal('parent') || getVal('name') || "Parent",
+                    'Child Name': getVal('child') || getVal('student') || "",
+                    'Grade': getVal('grade') || "CSV", // Default grade to 'CSV'
+                    'Donation Tier': getVal('tier') || "",
+                    'Occupation': getVal('occupation') || ""
+                };
+            });
+
+            // SWAP DATA
+            allData = normalizedData;
+            isCsvMode = true;
+
+            // UI Updates
+            document.getElementById('csvStatusArea').classList.remove('hidden');
+            document.getElementById('csvCount').innerText = normalizedData.length;
+            
+            // Disable filters that might not apply
+            // (Optional: You could leave them enabled if your CSV has Grade columns)
+            document.getElementById('filterGradeContainer').classList.add('opacity-50', 'pointer-events-none');
+            
+            // Refresh Lists
+            populateFilters(); 
+            applyFilters();
+            
+            alert(`Loaded ${normalizedData.length} recipients from CSV.`);
+        }
+    });
+}
+
+function clearCsv() {
+    document.getElementById('csvInput').value = ''; // Reset file input
+    document.getElementById('csvStatusArea').classList.add('hidden');
+    
+    // Revert Data
+    allData = originalData;
+    isCsvMode = false;
+    
+    // Re-enable UI
+    document.getElementById('filterGradeContainer').classList.remove('opacity-50', 'pointer-events-none');
+    
+    // Refresh
+    populateFilters();
+    applyFilters();
+}
+
+
+
+
+
+        
+
         function copyHtml() {
              const html = document.getElementById('htmlPreview');
              html.select();
@@ -168,25 +291,54 @@
 
         function logout() { USER_TOKEN = null; location.reload(); }
 
-        async function fetchData() {
-            const statusDiv = document.getElementById('loginStatus');
-            statusDiv.classList.remove('hidden');
-            statusDiv.innerHTML = '<span class="loader border-t-teal-600 w-4 h-4 mr-2"></span> Verifying & Loading...';
-            statusDiv.className = "mt-4 text-sm font-medium text-slate-500 flex items-center justify-center";
-            try {
-                const response = await fetch(APPS_SCRIPT_URL, {
-                    method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" },
-                    body: JSON.stringify({ action: 'getData', token: USER_TOKEN })
-                });
-                const json = await response.json();
-                if (json.error) throw new Error(json.error);
-                allData = json.data; populateFilters(); applyFilters();
-                document.getElementById('loginOverlay').classList.add('hidden');
-                document.getElementById('appContainer').classList.remove('hidden');
-            } catch (e) {
-                statusDiv.innerText = "Error: " + e.message; statusDiv.className = "mt-4 text-sm font-medium text-red-500 text-center";
-            }
+
+// ... keep USER_TOKEN, USER_EMAIL, etc ...
+
+async function fetchData() {
+    const statusDiv = document.getElementById('loginStatus');
+    statusDiv.classList.remove('hidden');
+    statusDiv.innerHTML = '<span class="loader border-t-teal-600 w-4 h-4 mr-2"></span> Verifying & Loading...';
+    statusDiv.className = "mt-4 text-sm font-medium text-slate-500 flex items-center justify-center";
+
+    try {
+        const response = await fetch(APPS_SCRIPT_URL, {
+            method: "POST", 
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify({ action: 'getData', token: USER_TOKEN })
+        });
+        
+        const json = await response.json();
+        
+        if (json.error) throw new Error(json.error);
+
+        // --- NEW LOGIC STARTS HERE ---
+        
+        // 1. Save the "Real" database to our backup variable
+        originalData = json.data; 
+
+        // 2. Only update the UI with this data if we aren't currently viewing a CSV
+        // (This prevents the sheet data from overwriting a CSV if you re-login)
+        if (!isCsvMode) {
+            allData = originalData;
+            
+            // 3. Refresh UI
+            populateFilters(); 
+            
+            // We default to 'teachers' tab on first load, or keep current if refreshing
+            switchTab(currentTab || 'teachers'); 
         }
+
+        // --- NEW LOGIC ENDS HERE ---
+
+        document.getElementById('loginOverlay').classList.add('hidden');
+        document.getElementById('appContainer').classList.remove('hidden');
+
+    } catch (e) {
+        statusDiv.innerText = "Error: " + e.message; 
+        statusDiv.className = "mt-4 text-sm font-medium text-red-500 text-center";
+        console.error(e);
+    }
+}
 
         function populateFilters() {
     // 1. Get unique grades, filter out empties, and sort
