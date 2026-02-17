@@ -60,8 +60,11 @@
                     <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
                         <h2 class="font-bold text-slate-800 mb-4">Filter Audience</h2>
                         <div class="space-y-4">
-                            <label class="label-text">Filter by Grade</label>
-                            <select id="filterGrade" onchange="applyFilters()" class="w-full border p-2 rounded bg-slate-50"><option value="All">All Grades</option></select>
+                            <label class="label-text mb-2 block">Filter by Grade (Select Multiple)</label>
+                                <div id="gradeCheckboxContainer" class="bg-slate-50 border rounded p-3 h-32 overflow-y-auto grid grid-cols-2 gap-2">
+                                    <div class="text-xs text-slate-400">Loading...</div>
+                                </div>
+                                <div class="text-xs text-teal-600 mt-1 cursor-pointer hover:underline text-right" onclick="toggleAllGrades()">Toggle All</div>
                             <label class="label-text">Filter by Donation Tier</label>
                             <select id="filterTier" onchange="applyFilters()" class="w-full border p-2 rounded bg-slate-50"><option value="All">All Tiers</option></select>
                             <label class="label-text">Filter by Occupation</label>
@@ -185,32 +188,71 @@
             }
         }
 
-        // --- FILTERS & UI UPDATES (PRIVACY CHANGE HERE) ---
         function populateFilters() {
-             // Keep existing logic to populate selects
-            const grades = [...new Set(allData.map(d => d.Grade))].filter(Boolean).sort();
-            const tiers = [...new Set(allData.map(d => d['Donation Tier']))].filter(Boolean).sort();
-            const gSel = document.getElementById('filterGrade'); const tSel = document.getElementById('filterTier');
-            gSel.innerHTML = '<option value="All">All Grades</option>'; tSel.innerHTML = '<option value="All">All Tiers</option>';
-            grades.forEach(g => gSel.innerHTML += `<option value="${g}">${g}</option>`);
-            tiers.forEach(t => tSel.innerHTML += `<option value="${t}">${t}</option>`);
-            document.getElementById('totalDisplay').innerText = allData.length;
-        }
+    // 1. Get unique grades and sort them
+    const grades = [...new Set(allData.map(d => d.Grade))].filter(Boolean).sort();
+    
+    // 2. Populate Checkboxes
+    const container = document.getElementById('gradeCheckboxContainer');
+    container.innerHTML = ''; // Clear loading text
+
+    grades.forEach(g => {
+        // Create a unique ID for label linking
+        const id = `grade_${g.replace(/\s+/g, '_')}`;
+        
+        const div = document.createElement('div');
+        div.className = "flex items-center space-x-2";
+        div.innerHTML = `
+            <input type="checkbox" id="${id}" value="${g}" 
+                   class="grade-checkbox w-4 h-4 text-teal-600 rounded border-gray-300 focus:ring-teal-500" 
+                   onchange="applyFilters()" checked>
+            <label for="${id}" class="text-sm text-slate-700 cursor-pointer select-none">${g}</label>
+        `;
+        container.appendChild(div);
+    });
+
+    // 3. Populate other dropdowns (Tiers) as before
+    const tiers = [...new Set(allData.map(d => d['Donation Tier']))].filter(Boolean).sort();
+    const tSel = document.getElementById('filterTier');
+    tSel.innerHTML = '<option value="All">All Tiers</option>';
+    tiers.forEach(t => tSel.innerHTML += `<option value="${t}">${t}</option>`);
+
+    document.getElementById('totalDisplay').innerText = allData.length;
+}
+
+// Helper to quickly select/deselect all
+function toggleAllGrades() {
+    const boxes = document.querySelectorAll('.grade-checkbox');
+    // If first is checked, uncheck all. Otherwise check all.
+    const shouldCheck = !boxes[0].checked;
+    boxes.forEach(b => b.checked = shouldCheck);
+    applyFilters();
+}
 
         function applyFilters() {
-            // Keep existing filter logic
-            const grade = document.getElementById('filterGrade').value;
-            const tier = document.getElementById('filterTier').value;
-            const job = document.getElementById('filterJob').value.toLowerCase();
-            filteredData = allData.filter(d => {
-                const mG = grade === 'All' || d.Grade == grade;
-                const mT = tier === 'All' || d['Donation Tier'] == tier;
-                const jobStr = d.Occupation ? d.Occupation.toString().toLowerCase() : "";
-                const mJ = job === "" || jobStr.includes(job);
-                return mG && mT && mJ;
-            });
-            updateUI();
-        }
+    // 1. Get all checked grades
+    const checkedBoxes = document.querySelectorAll('.grade-checkbox:checked');
+    const selectedGrades = Array.from(checkedBoxes).map(cb => cb.value);
+
+    // 2. Get other filters
+    const tier = document.getElementById('filterTier').value;
+    const job = document.getElementById('filterJob').value.toLowerCase();
+
+    // 3. Filter Data
+    filteredData = allData.filter(d => {
+        // Grade Match: Check if the row's grade is in our list of selected grades
+        // We compare strings to be safe (e.g. "1" == 1)
+        const matchGrade = selectedGrades.some(g => g == d.Grade);
+        
+        const mT = tier === 'All' || d['Donation Tier'] == tier;
+        const jobStr = d.Occupation ? d.Occupation.toString().toLowerCase() : "";
+        const mJ = job === "" || jobStr.includes(job);
+        
+        return matchGrade && mT && mJ;
+    });
+
+    updateUI();
+}
 
 
 
