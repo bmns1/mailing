@@ -189,29 +189,32 @@
         }
 
         function populateFilters() {
-    // 1. Get unique grades and sort them
+    // 1. Get unique grades, filter out empties, and sort
     const grades = [...new Set(allData.map(d => d.Grade))].filter(Boolean).sort();
     
-    // 2. Populate Checkboxes
+    // 2. Clear Container
     const container = document.getElementById('gradeCheckboxContainer');
-    container.innerHTML = ''; // Clear loading text
+    container.innerHTML = ''; 
 
     grades.forEach(g => {
-        // Create a unique ID for label linking
-        const id = `grade_${g.replace(/\s+/g, '_')}`;
+        // ERROR FIX: Convert to String first so numbers (1, 2) don't crash .replace()
+        const valStr = String(g); 
+        const id = `grade_${valStr.replace(/\s+/g, '_')}`; // Safe ID generation
         
         const div = document.createElement('div');
         div.className = "flex items-center space-x-2";
+        
+        // We create the checkbox manually to ensure values are correct
         div.innerHTML = `
-            <input type="checkbox" id="${id}" value="${g}" 
-                   class="grade-checkbox w-4 h-4 text-teal-600 rounded border-gray-300 focus:ring-teal-500" 
-                   onchange="applyFilters()" checked>
-            <label for="${id}" class="text-sm text-slate-700 cursor-pointer select-none">${g}</label>
+            <input type="checkbox" id="${id}" value="${valStr}" 
+                   class="grade-checkbox w-4 h-4 text-teal-600 rounded border-gray-300 focus:ring-teal-500 cursor-pointer" 
+                   onchange="applyFilters()">
+            <label for="${id}" class="text-xs text-slate-700 cursor-pointer select-none font-medium">${valStr}</label>
         `;
         container.appendChild(div);
     });
 
-    // 3. Populate other dropdowns (Tiers) as before
+    // 3. Populate Tiers (Keep existing logic)
     const tiers = [...new Set(allData.map(d => d['Donation Tier']))].filter(Boolean).sort();
     const tSel = document.getElementById('filterTier');
     tSel.innerHTML = '<option value="All">All Tiers</option>';
@@ -219,30 +222,33 @@
 
     document.getElementById('totalDisplay').innerText = allData.length;
 }
-
-// Helper to quickly select/deselect all
 function toggleAllGrades() {
     const boxes = document.querySelectorAll('.grade-checkbox');
-    // If first is checked, uncheck all. Otherwise check all.
-    const shouldCheck = !boxes[0].checked;
-    boxes.forEach(b => b.checked = shouldCheck);
+    if(boxes.length === 0) return;
+    
+    // Check if the first one is currently checked
+    const isChecked = boxes[0].checked;
+    
+    // Toggle to opposite
+    boxes.forEach(b => b.checked = !isChecked);
+    
     applyFilters();
 }
 
         function applyFilters() {
-    // 1. Get all checked grades
+    // 1. Get all checked values (These are always Strings from HTML)
     const checkedBoxes = document.querySelectorAll('.grade-checkbox:checked');
+    // If nothing checked, assume NO filter (or show empty - your choice. Here we show nothing if nothing checked)
     const selectedGrades = Array.from(checkedBoxes).map(cb => cb.value);
 
-    // 2. Get other filters
     const tier = document.getElementById('filterTier').value;
     const job = document.getElementById('filterJob').value.toLowerCase();
 
-    // 3. Filter Data
     filteredData = allData.filter(d => {
-        // Grade Match: Check if the row's grade is in our list of selected grades
-        // We compare strings to be safe (e.g. "1" == 1)
-        const matchGrade = selectedGrades.some(g => g == d.Grade);
+        // GRADE MATCH: Compare String(row_grade) with our selected strings
+        // If no boxes checked, show nothing (OR change to 'true' if you want "Show All" when empty)
+        const rowGrade = String(d.Grade);
+        const matchGrade = selectedGrades.length === 0 ? true : selectedGrades.includes(rowGrade);
         
         const mT = tier === 'All' || d['Donation Tier'] == tier;
         const jobStr = d.Occupation ? d.Occupation.toString().toLowerCase() : "";
