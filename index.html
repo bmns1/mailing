@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -10,277 +9,434 @@
     <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
 
     <style>
-        body { font-family: 'Inter', system-ui, sans-serif; background-color: #f8fafc; }
-        .loader { border: 3px solid #f3f3f3; border-top: 3px solid #0d9488; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; display: inline-block; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        /* Custom Scrollbar for preview areas */
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: #f1f1f1; }
-        ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #aaa; }
+        *, *::before, *::after { box-sizing: border-box; }
+        body { font-family: 'DM Sans', system-ui, sans-serif; background-color: #f0fdf9; margin: 0; }
+        .loader { border: 3px solid rgba(13,148,136,.15); border-top: 3px solid #0d9488; border-radius: 50%; width: 18px; height: 18px; animation: spin .8s linear infinite; display: inline-block; vertical-align: middle; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes pulse-dot { 0%,100% { opacity:.4; } 50% { opacity:1; } }
+
+        .ql-toolbar.ql-snow { border-radius: 10px 10px 0 0; border-color: #e2e8f0; background: #f8fafc; }
+        .ql-container.ql-snow { border-radius: 0 0 10px 10px; border-color: #e2e8f0; font-family: 'DM Sans', sans-serif; font-size: 15px; }
+        .ql-editor { min-height: 220px; }
+        .ql-editor.ql-blank::before { font-style: normal; color: #94a3b8; }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 6px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        .card { transition: box-shadow 0.2s ease; }
+        .card:hover { box-shadow: 0 4px 24px rgba(13,148,136,.07); }
+
+        .submitted-banner { animation: fadeUp .4s ease-out; }
+        .pulse-dot { animation: pulse-dot 1.4s ease-in-out infinite; }
     </style>
 </head>
 <body class="text-slate-800">
 
-    <div id="loginOverlay" class="fixed inset-0 z-50 bg-slate-900/95 flex flex-col items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
-             <div class="mb-6 flex justify-center"><div class="w-16 h-16 bg-teal-100 rounded-full flex items-center justify-center"><svg class="w-8 h-8 text-teal-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg></div></div>
-            <h1 class="text-2xl font-bold text-slate-800 mb-2">SVA Mailing Tool</h1>
-            <p class="text-slate-500 mb-8 text-sm">Sign in to access mailing tools.</p>
+    <!-- ===================== LOGIN ===================== -->
+    <div id="loginOverlay" class="fixed inset-0 z-50 bg-gradient-to-br from-slate-900 via-teal-950 to-slate-900 flex flex-col items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl p-10 max-w-sm w-full text-center">
+            <div class="mb-6 flex justify-center">
+                <div class="w-16 h-16 bg-teal-50 rounded-2xl flex items-center justify-center shadow-inner">
+                    <svg class="w-8 h-8 text-teal-600" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"></path></svg>
+                </div>
+            </div>
+            <h1 class="text-xl font-bold text-slate-800 mb-1">SVA Communications</h1>
+            <p class="text-slate-400 mb-8 text-sm">Sign in with your admin account</p>
             <div id="g_id_onload"
                  data-client_id="14216824305-v19ecsmrhk1muaglrlhjceqjk5oeqr4n.apps.googleusercontent.com"
                  data-callback="handleCredentialResponse"
                  data-auto_select="false"
-                 data-scope="email profile openid">
-            </div>
+                 data-scope="email profile openid"></div>
             <div class="g_id_signin" data-type="standard" data-size="large" data-theme="filled_blue" data-text="sign_in_with" data-shape="rectangular" data-logo_alignment="center"></div>
             <div id="loginStatus" class="mt-4 text-sm font-medium text-red-500 hidden"></div>
         </div>
     </div>
 
-    <div id="appContainer" class="hidden min-h-screen pb-12">
-        <header class="bg-white border-b border-slate-200 sticky top-0 z-40">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-                <h1 class="text-lg font-bold text-slate-800 flex items-center gap-2">
-                    <svg class="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+    <!-- ===================== MAIN APP ===================== -->
+    <div id="appContainer" class="hidden min-h-screen pb-16">
+
+        <!-- HEADER -->
+        <header class="bg-white/80 backdrop-blur-lg border-b border-teal-100 sticky top-0 z-40">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
+                <h1 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"></path></svg>
                     Communications Center
                 </h1>
                 <div class="flex items-center gap-4 text-sm">
-                    <span id="userEmailDisplay" class="text-slate-500 font-medium"></span>
-                    <button onclick="logout()" class="text-red-600 hover:text-red-800 font-medium">Sign Out</button>
+                    <span id="userEmailDisplay" class="text-slate-400 font-medium text-xs hidden sm:inline"></span>
+                    <button onclick="logout()" class="text-red-500 hover:text-red-700 font-semibold text-xs tracking-wide uppercase">Sign Out</button>
                 </div>
             </div>
         </header>
 
-        
-
+        <!-- CONTENT -->
         <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                
-                <div class="lg:col-span-4 space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-                    
-                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 mb-6">
-    <h2 class="font-bold text-slate-800 mb-2 flex items-center gap-2">
-        <svg class="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-        Upload Custom List
-    </h2>
-    <p class="text-xs text-slate-500 mb-3">
-        Upload CSV with headers: <code>Email</code>, <code>Parent Name</code><br>
-        <span class="text-slate-400 italic">(Optional: Child Name, Grade)</span>
-    </p>
-    
-    <label class="block">
-        <span class="sr-only">Choose file</span>
-        <input type="file" id="csvInput" accept=".csv" onchange="handleCsvUpload()" class="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100"/>
-    </label>
+                <!-- ========== LEFT SIDEBAR ========== -->
+                <div class="lg:col-span-4 space-y-5">
 
-    <div id="csvStatusArea" class="hidden mt-3 pt-3 border-t border-slate-100">
-        <div class="text-xs font-semibold text-green-600 flex items-center gap-1">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-            <span id="csvCount">0</span> recipients loaded
-        </div>
-        <button onclick="clearCsv()" class="text-xs text-red-500 hover:text-red-700 underline mt-1">Remove CSV & Use Database</button>
-    </div>
-</div>
-
-                    
-                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5" id="filterGradeContainer">
-                        <h2 class="font-bold text-slate-800 mb-4" id="filterTitle">Filter Audience</h2>
-                        <div class="space-y-4">
-                            <label class="label-text mb-2 block">Filter by Grade (Select Multiple)</label>
-                                <div id="gradeCheckboxContainer" class="bg-slate-50 border rounded p-3 h-32 overflow-y-auto grid grid-cols-2 gap-2">
-                                    <div class="text-xs text-slate-400">Loading...</div>
-                                </div>
-                                <div class="text-xs text-teal-600 mt-1 cursor-pointer hover:underline text-right" onclick="toggleAllGrades()">Toggle All</div>
-                            <label class="label-text">Filter by Donation Tier</label>
-                            <select id="filterTier" onchange="applyFilters()" class="w-full border p-2 rounded bg-slate-50"><option value="All">All Tiers</option></select>
-                            <label class="label-text">Filter by Occupation</label>
-                            <input type="text" id="filterJob" onkeyup="applyFilters()" placeholder="Occupation Search..." class="w-full border p-2 rounded bg-slate-50">
-                        </div>
-                        <div class="mt-4 pt-4 border-t flex justify-between items-end">
-                            <div><p class="text-3xl font-bold text-teal-600" id="countDisplay">0</p><p class="text-sm text-slate-500">Selected</p></div>
-                            <div class="text-right"><p class="text-xs text-slate-400">Total Database</p><p class="font-semibold" id="totalDisplay">0</p></div>
+                    <!-- CSV Upload -->
+                    <div class="card bg-white rounded-xl shadow-sm border border-teal-100 p-5">
+                        <h2 class="font-bold text-slate-700 text-sm mb-2 flex items-center gap-2">
+                            <svg class="w-4 h-4 text-teal-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"></path></svg>
+                            Upload Custom List
+                        </h2>
+                        <p class="text-xs text-slate-400 mb-3 leading-relaxed">
+                            CSV headers: <code class="bg-teal-50 text-teal-700 px-1 rounded text-[11px]">Email</code>,
+                            <code class="bg-teal-50 text-teal-700 px-1 rounded text-[11px]">Parent Name</code>
+                            <span class="text-slate-300 ml-1">(optional: Child Name, Grade)</span>
+                        </p>
+                        <label class="block">
+                            <input type="file" id="csvInput" accept=".csv" onchange="handleCsvUpload()" class="block w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100 file:cursor-pointer file:transition-colors"/>
+                        </label>
+                        <div id="csvStatusArea" class="hidden mt-3 pt-3 border-t border-teal-50">
+                            <div class="text-xs font-semibold text-teal-600 flex items-center gap-1">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"></path></svg>
+                                <span id="csvCount">0</span> recipients loaded
+                            </div>
+                            <button onclick="clearCsv()" class="text-xs text-red-400 hover:text-red-600 mt-1 font-medium">Remove &amp; revert to database</button>
                         </div>
                     </div>
 
-                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col" style="max-height: 500px;">
-                        <div class="p-3 border-b bg-slate-50 font-medium text-sm">Recipient Preview</div>
-                        <div id="previewList" class="overflow-y-auto p-2 space-y-1 flex-1">
-                            <div class="text-center text-slate-400 text-sm p-4">Loading data...</div>
+                    <!-- Filters -->
+                    <div class="card bg-white rounded-xl shadow-sm border border-teal-100 p-5" id="filterGradeContainer">
+                        <h2 class="font-bold text-slate-700 text-sm mb-4" id="filterTitle">Filter Audience</h2>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 block">Grade</label>
+                                <div id="gradeCheckboxContainer" class="bg-slate-50 border border-slate-200 rounded-lg p-3 h-28 overflow-y-auto grid grid-cols-2 gap-1.5">
+                                    <div class="text-xs text-slate-300">Loading…</div>
+                                </div>
+                                <div class="text-[11px] text-teal-500 mt-1 cursor-pointer hover:underline text-right font-medium" onclick="toggleAllGrades()">Toggle All</div>
+                            </div>
+                            <div>
+                                <label class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 block">Donation Tier</label>
+                                <select id="filterTier" onchange="applyFilters()" class="w-full border border-slate-200 p-2 rounded-lg bg-slate-50 text-sm focus:ring-2 focus:ring-teal-200 focus:border-teal-400 outline-none"><option value="All">All Tiers</option></select>
+                            </div>
+                            <div>
+                                <label class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 block">Occupation</label>
+                                <input type="text" id="filterJob" onkeyup="applyFilters()" placeholder="Search…" class="w-full border border-slate-200 p-2 rounded-lg bg-slate-50 text-sm focus:ring-2 focus:ring-teal-200 focus:border-teal-400 outline-none">
+                            </div>
+                        </div>
+                        <div class="mt-4 pt-4 border-t border-teal-50 flex justify-between items-end">
+                            <div>
+                                <p class="text-3xl font-bold text-teal-600 leading-none" id="countDisplay">0</p>
+                                <p class="text-[11px] text-slate-400 mt-0.5 font-medium">Selected</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-[11px] text-slate-300 font-medium">Database Total</p>
+                                <p class="font-bold text-slate-500 text-sm" id="totalDisplay">0</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recipient Preview -->
+                    <div class="card bg-white rounded-xl shadow-sm border border-teal-100 overflow-hidden flex flex-col" style="max-height: 420px;">
+                        <div class="px-4 py-2.5 border-b border-teal-50 bg-teal-50/50 font-semibold text-xs text-teal-700 uppercase tracking-wider">Recipient Preview</div>
+                        <div id="previewList" class="overflow-y-auto p-2 space-y-0.5 flex-1">
+                            <div class="text-center text-slate-300 text-sm p-6">Loading…</div>
                         </div>
                     </div>
                 </div>
 
-                <div class="lg:col-span-8 space-y-6">
-                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-                        <div class="grid grid-cols-2 gap-4 mb-4">
-                            <label class="block text-sm font-medium mb-1">Sender Name</label>
-                            <input type="text" id="senderName" value="SVA Admin" class="border p-2 rounded" placeholder="Sender Name">
-                            <label class="block text-sm font-medium mb-1">Reply-To Email</label>
-                            <input type="email" id="replyTo" value="info@svaschool.org" class="border p-2 rounded" placeholder="Reply-To">
-                        </div>
-                        <label class="block text-sm font-medium mb-1">Subject</label>
-                        <input type="text" id="subject" placeholder="Email Subject" class="w-full border p-2 rounded mb-4 font-medium">
+                <!-- ========== RIGHT: COMPOSE ========== -->
+                <div class="lg:col-span-8 space-y-5">
+                    <div class="card bg-white rounded-xl shadow-sm border border-teal-100 p-6">
 
-                        <div class="mb-6">
-                            <label class="block text-sm font-medium text-slate-700 mb-2">Email Content (Drag images directly in)</label>
-                            <div id="editor" class="bg-white h-64 mb-4"></div>
-                            
-                            <div class="mb-4 text-xs text-slate-500 flex gap-2">
-                                <span class="font-semibold">Variables:</span>
-                                <code class="bg-slate-100 px-1 rounded">{Parent Name}</code> <code class="bg-slate-100 px-1 rounded">{Child Name}</code> <code class="bg-slate-100 px-1 rounded">{Grade}</code>
+                        <!-- Sender row -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+                            <div>
+                                <label class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 block">Sender Name</label>
+                                <input type="text" id="senderName" value="SVA Admin" class="w-full border border-slate-200 p-2.5 rounded-lg text-sm focus:ring-2 focus:ring-teal-200 focus:border-teal-400 outline-none">
+                            </div>
+                            <div>
+                                <label class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 block">Reply-To</label>
+                                <input type="email" id="replyTo" value="info@svaschool.org" class="w-full border border-slate-200 p-2.5 rounded-lg text-sm focus:ring-2 focus:ring-teal-200 focus:border-teal-400 outline-none">
                             </div>
                         </div>
 
-                        <div class="mb-6 border-t pt-6">
-                            <label class="block text-sm font-medium mb-2">File Attachments</label>
-                             <input id="attachments" type="file" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100" multiple onchange="updateFileCount()" />
-                            <div id="fileList" class="mt-2 text-sm text-teal-600 font-medium"></div>
+                        <!-- Subject -->
+                        <label class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 block">Subject</label>
+                        <input type="text" id="subject" placeholder="Email Subject" class="w-full border border-slate-200 p-2.5 rounded-lg text-sm font-medium mb-5 focus:ring-2 focus:ring-teal-200 focus:border-teal-400 outline-none">
+
+                        <!-- Editor -->
+                        <div class="mb-5">
+                            <label class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 block">Body</label>
+                            <div id="editor" class="bg-white"></div>
+                            <div class="mt-2 flex gap-1.5 flex-wrap">
+                                <span class="text-[11px] text-slate-400 font-medium mr-1 self-center">Variables:</span>
+                                <code class="bg-teal-50 text-teal-700 px-1.5 py-0.5 rounded text-[11px] font-semibold">{Parent Name}</code>
+                                <code class="bg-teal-50 text-teal-700 px-1.5 py-0.5 rounded text-[11px] font-semibold">{Child Name}</code>
+                                <code class="bg-teal-50 text-teal-700 px-1.5 py-0.5 rounded text-[11px] font-semibold">{Grade}</code>
+                            </div>
                         </div>
-                        
-                        <div class="flex justify-between pt-6 border-t">
-                            <button onclick="sendTestEmail()" class="text-slate-500 hover:text-slate-800 text-sm font-medium px-4 py-2 rounded hover:bg-slate-100">Send Test to Me</button>
-                            <button id="sendBtn" onclick="sendCampaign()" class="bg-teal-600 text-white font-bold py-3 px-8 rounded-lg shadow hover:bg-teal-700 flex items-center gap-2">
+
+                        <!-- Attachments -->
+                        <div class="mb-6 border-t border-teal-50 pt-5">
+                            <label class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5 block">Attachments</label>
+                            <input id="attachments" type="file" class="block w-full text-sm text-slate-500 file:mr-3 file:py-1.5 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100 file:cursor-pointer file:transition-colors" multiple onchange="updateFileCount()" />
+                            <div id="fileList" class="mt-1.5 text-xs text-teal-600 font-semibold"></div>
+                        </div>
+
+                        <!-- Batch Size -->
+                        <div class="mb-5 border-t border-teal-50 pt-5">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <label class="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Batch Size</label>
+                                    <p class="text-[11px] text-slate-400 mt-0.5">Recipients per request — lower for large attachments</p>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <input type="range" id="batchSize" min="10" max="100" value="50" step="10" oninput="document.getElementById('batchSizeLabel').textContent=this.value" class="w-24 accent-teal-600">
+                                    <span id="batchSizeLabel" class="text-sm font-bold text-teal-700 w-8 text-center">50</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="flex justify-between pt-5 border-t border-teal-50">
+                            <button onclick="sendTestEmail()" id="testBtn" class="text-slate-400 hover:text-teal-700 text-sm font-semibold px-4 py-2.5 rounded-lg hover:bg-teal-50 transition-colors">Send Test to Me</button>
+                            <button id="sendBtn" onclick="sendCampaign()" class="bg-teal-600 text-white font-bold py-3 px-8 rounded-xl shadow-lg shadow-teal-600/20 hover:bg-teal-700 hover:shadow-teal-700/30 flex items-center gap-2 transition-all">
                                 <span>Send Campaign</span>
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"></path></svg>
                             </button>
                         </div>
-                        <div id="statusArea" class="mt-4 hidden p-4 rounded-lg text-center text-sm font-medium"></div>
+
+                        <!-- Status Area -->
+                        <div id="statusArea" class="hidden mt-5"></div>
                     </div>
                 </div>
+
             </div>
         </main>
     </div>
 
+    <!-- ===================== SCRIPT ===================== -->
     <script>
-        // REPLACE WITH YOUR ACTUAL NEW DEPLOYMENT URL
         const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwi7gGsMx3Beqh7O0o8sV3ZfACKLwT5Ysw3H-4YquNwG3hMWnIrY9R-OiBNDcE8Dm8k/exec";
-        let USER_TOKEN = null; let USER_EMAIL = null; let allData = []; let filteredData = [];
-        // --- GLOBAL VARIABLES ---
-// We add 'originalData' to store the Google Sheet data permanently
-// so we can revert back to it after removing a CSV.
-let originalData = []; 
-let isCsvMode = false;
+        let USER_TOKEN = null;
+        let USER_EMAIL = null;
+        let allData = [];
+        let filteredData = [];
+        let originalData = [];
+        let isCsvMode = false;
+        let isSending = false;
 
-        // --- EDITOR SETUP (UPDATED) ---
+        // ---- Quill Editor ----
         var quill = new Quill('#editor', {
             theme: 'snow',
-            placeholder: 'Draft message here. Drag & drop images...',
-            modules: {
-                toolbar: [
-                    [{ 'header': [1, 2, false] }],
-                    ['bold', 'italic', 'underline', 'link'],
-                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                    [{ 'color': [] }, { 'background': [] }],
-                    ['image', 'clean'] // 'image' added explicitly
-                ]
-            }
+            placeholder: 'Draft your message here. Drag & drop images…',
+            modules: { toolbar: [
+                [{ 'header': [1, 2, false] }],
+                ['bold', 'italic', 'underline', 'link'],
+                [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                [{ 'color': [] }, { 'background': [] }],
+                ['image', 'clean']
+            ]}
         });
 
-        // Listen for changes and update HTML preview
-        quill.on('text-change', function() {
-            document.getElementById('htmlPreview').value = quill.root.innerHTML;
-        });
-
-
-
-
-
-// --- NEW CSV FUNCTIONS ---
-
-function handleCsvUpload() {
-    const file = document.getElementById('csvInput').files[0];
-    if (!file) return;
-
-    Papa.parse(file, {
-        header: true, // Expects headers like 'Email', 'Parent Name'
-        skipEmptyLines: true,
-        complete: function(results) {
-            const rows = results.data;
-            
-            // Validation: Check for Email column
-            // We search case-insensitive for 'email'
-            const sample = rows[0];
-            const emailKey = Object.keys(sample).find(k => k.toLowerCase().includes('email'));
-            
-            if (!emailKey) {
-                alert("Error: CSV must have an 'Email' column.");
-                clearCsv();
-                return;
-            }
-
-            // Normalize Data for our App
-            const normalizedData = rows.map(row => {
-                // Find keys case-insensitively
-                const getVal = (keyPart) => {
-                    const k = Object.keys(row).find(key => key.toLowerCase().includes(keyPart));
-                    return k ? row[k] : "";
-                };
-
-                return {
-                    'Email': row[emailKey], // Critical
-                    'Parent Name': getVal('parent') || getVal('name') || "Parent",
-                    'Child Name': getVal('child') || getVal('student') || "",
-                    'Grade': getVal('grade') || "CSV", // Default grade to 'CSV'
-                    'Donation Tier': getVal('tier') || "",
-                    'Occupation': getVal('occupation') || ""
-                };
+        // ---- CSV ----
+        function handleCsvUpload() {
+            const file = document.getElementById('csvInput').files[0];
+            if (!file) return;
+            Papa.parse(file, {
+                header: true, skipEmptyLines: true,
+                complete: function(results) {
+                    const rows = results.data;
+                    const emailKey = Object.keys(rows[0]).find(k => k.toLowerCase().includes('email'));
+                    if (!emailKey) { alert("Error: CSV must have an 'Email' column."); clearCsv(); return; }
+                    const nd = rows.map(row => {
+                        const g = (kp) => { const k = Object.keys(row).find(key => key.toLowerCase().includes(kp)); return k ? row[k] : ""; };
+                        return { 'Email': row[emailKey], 'Parent Name': g('parent')||g('name')||"Parent", 'Child Name': g('child')||g('student')||"", 'Grade': g('grade')||"CSV", 'Donation Tier': g('tier')||"", 'Occupation': g('occupation')||"" };
+                    });
+                    allData = nd; isCsvMode = true;
+                    document.getElementById('csvStatusArea').classList.remove('hidden');
+                    document.getElementById('csvCount').innerText = nd.length;
+                    document.getElementById('filterGradeContainer').classList.add('opacity-50', 'pointer-events-none');
+                    populateFilters(); applyFilters();
+                    alert('Loaded ' + nd.length + ' recipients from CSV.');
+                }
             });
-
-            // SWAP DATA
-            allData = normalizedData;
-            isCsvMode = true;
-
-            // UI Updates
-            document.getElementById('csvStatusArea').classList.remove('hidden');
-            document.getElementById('csvCount').innerText = normalizedData.length;
-            
-            // Disable filters that might not apply
-            // (Optional: You could leave them enabled if your CSV has Grade columns)
-            document.getElementById('filterGradeContainer').classList.add('opacity-50', 'pointer-events-none');
-            
-            // Refresh Lists
-            populateFilters(); 
-            applyFilters();
-            
-            alert(`Loaded ${normalizedData.length} recipients from CSV.`);
         }
-    });
-}
-
-function clearCsv() {
-    document.getElementById('csvInput').value = ''; // Reset file input
-    document.getElementById('csvStatusArea').classList.add('hidden');
-    
-    // Revert Data
-    allData = originalData;
-    isCsvMode = false;
-    
-    // Re-enable UI
-    document.getElementById('filterGradeContainer').classList.remove('opacity-50', 'pointer-events-none');
-    
-    // Refresh
-    populateFilters();
-    applyFilters();
-}
-
-
-
-
-
-        
-
-        function copyHtml() {
-             const html = document.getElementById('htmlPreview');
-             html.select();
-             document.execCommand('copy');
-             alert("HTML copied to clipboard!");
+        function clearCsv() {
+            document.getElementById('csvInput').value = '';
+            document.getElementById('csvStatusArea').classList.add('hidden');
+            allData = originalData; isCsvMode = false;
+            document.getElementById('filterGradeContainer').classList.remove('opacity-50', 'pointer-events-none');
+            populateFilters(); applyFilters();
         }
 
-        // --- LOGIN & DATA FETCHING (Keep your existing logic here) ---
+        // ---- Attachments ----
+        function updateFileCount() {
+            const c = document.getElementById('attachments').files.length;
+            document.getElementById('fileList').innerText = c === 0 ? "" : c + " file(s) attached";
+        }
+        const getBase64 = (file) => new Promise((resolve) => {
+            const r = new FileReader(); r.readAsDataURL(file);
+            r.onload = () => resolve({ name: file.name, mime: file.type, data: r.result.split(',')[1] });
+        });
+
+        // ---- Generate unique request ID ----
+        function generateRequestId() {
+            return 'REQ_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
+        }
+
+        // =====================================================
+        //  FIRE-AND-FORGET SEND
+        //  - Builds payload once
+        //  - Fires ALL batch requests simultaneously
+        //  - Sends finalize request
+        //  - Shows confirmation instantly — user can close tab
+        // =====================================================
+        async function sendCampaign() {
+            if (isSending) return;
+            if (filteredData.length === 0) return alert("Select recipients first.");
+            if (!document.getElementById('subject').value) return alert("Subject is required.");
+            if (!confirm('Send to ' + filteredData.length + ' recipients? You\'ll receive a confirmation email when complete.')) return;
+            await fireAndForget(filteredData, false);
+        }
+
+        async function sendTestEmail() {
+            if (isSending) return;
+            const testRecipient = [{ 'Parent Name': "Test Admin", 'Child Name': "Test Student", 'Grade': "Test", 'Email': USER_EMAIL, '_rowIndex': -1 }];
+            await fireAndForget(testRecipient, true);
+        }
+
+        async function fireAndForget(recipients, isTest) {
+            isSending = true;
+            const btn = document.getElementById('sendBtn');
+            const testBtn = document.getElementById('testBtn');
+            const statusArea = document.getElementById('statusArea');
+            const batchSize = parseInt(document.getElementById('batchSize').value) || 50;
+            const requestId = generateRequestId();
+
+            // Lock UI instantly
+            btn.disabled = true; testBtn.disabled = true;
+            btn.classList.replace('bg-teal-600', 'bg-slate-300');
+            btn.classList.remove('hover:bg-teal-700', 'shadow-teal-600/20', 'hover:shadow-teal-700/30');
+            btn.innerHTML = '<span class="loader border-t-white w-4 h-4"></span><span class="ml-2">Submitting…</span>';
+            statusArea.classList.remove('hidden');
+            statusArea.innerHTML = '<div class="text-center text-sm text-slate-400 py-3"><span class="loader border-t-teal-600 w-4 h-4 mr-2"></span> Preparing batches…</div>';
+
+            try {
+                // 1. Encode attachments (this is the slow part the user waits for)
+                const attachments = await Promise.all([...document.getElementById('attachments').files].map(getBase64));
+                const emailData = {
+                    senderName: document.getElementById('senderName').value,
+                    replyTo: document.getElementById('replyTo').value,
+                    subject: (isTest ? "[TEST] " : "") + document.getElementById('subject').value,
+                    body: quill.root.innerHTML,
+                    attachments: attachments
+                };
+
+                // 2. Split into batches
+                const batches = [];
+                for (let i = 0; i < recipients.length; i += batchSize) {
+                    batches.push(recipients.slice(i, i + batchSize));
+                }
+                const totalBatches = batches.length;
+
+                // 3. FIRE ALL batch requests simultaneously — do NOT await them
+                const batchPromises = batches.map((chunk, idx) => {
+                    return fetch(APPS_SCRIPT_URL, {
+                        method: "POST",
+                        headers: { "Content-Type": "text/plain;charset=utf-8" },
+                        body: JSON.stringify({
+                            action: 'sendBatch',
+                            token: USER_TOKEN,
+                            requestId: requestId,
+                            batchNum: idx + 1,
+                            totalBatches: totalBatches,
+                            recipients: chunk,
+                            emailData: emailData
+                        })
+                    }).catch(function() { /* fire-and-forget: errors handled server-side */ });
+                });
+
+                // 4. Fire finalize request (also non-blocking, but we send it after batch requests)
+                const finalizePromise = fetch(APPS_SCRIPT_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "text/plain;charset=utf-8" },
+                    body: JSON.stringify({
+                        action: 'finalize',
+                        token: USER_TOKEN,
+                        requestId: requestId,
+                        totalBatches: totalBatches,
+                        subject: emailData.subject
+                    })
+                }).catch(function() {});
+
+                // 5. We DON'T await batchPromises — they'll run in background
+                //    Even if user closes tab, the server already received the requests.
+                //    We just wait a moment for the requests to be sent out.
+                await Promise.resolve(); // Yield to let fetch calls initiate
+
+                // 6. Show success banner immediately
+                showSubmittedBanner(statusArea, recipients.length, totalBatches, requestId, isTest);
+
+            } catch (e) {
+                statusArea.innerHTML = '<div class="rounded-xl border border-red-200 bg-red-50 p-4 text-center text-sm text-red-600 font-medium">' +
+                    'Failed to submit: ' + e.message + '</div>';
+            }
+
+            // Unlock UI
+            isSending = false;
+            btn.disabled = false; testBtn.disabled = false;
+            btn.classList.replace('bg-slate-300', 'bg-teal-600');
+            btn.classList.add('hover:bg-teal-700', 'shadow-teal-600/20', 'hover:shadow-teal-700/30');
+            btn.innerHTML = '<span>Send Campaign</span><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"></path></svg>';
+        }
+
+        function showSubmittedBanner(container, recipientCount, batchCount, requestId, isTest) {
+            const testLabel = isTest ? ' (Test)' : '';
+            container.innerHTML = `
+                <div class="submitted-banner rounded-xl border border-teal-200 bg-gradient-to-br from-teal-50 to-white overflow-hidden">
+                    <!-- Success Header -->
+                    <div class="p-5 text-center">
+                        <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-teal-100 mb-3">
+                            <svg class="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"></path>
+                            </svg>
+                        </div>
+                        <h3 class="text-lg font-bold text-slate-800 mb-1">Campaign Submitted${testLabel}</h3>
+                        <p class="text-sm text-slate-500">
+                            <span class="font-semibold text-teal-700">${recipientCount}</span> recipient${recipientCount !== 1 ? 's' : ''}
+                            across <span class="font-semibold text-teal-700">${batchCount}</span> batch${batchCount !== 1 ? 'es' : ''}
+                        </p>
+                    </div>
+                    <!-- Info -->
+                    <div class="border-t border-teal-100 bg-white/60 px-5 py-4">
+                        <div class="flex items-start gap-3">
+                            <div class="flex gap-1 mt-1.5 shrink-0">
+                                <span class="w-1.5 h-1.5 rounded-full bg-teal-400 pulse-dot" style="animation-delay:0s"></span>
+                                <span class="w-1.5 h-1.5 rounded-full bg-teal-400 pulse-dot" style="animation-delay:0.2s"></span>
+                                <span class="w-1.5 h-1.5 rounded-full bg-teal-400 pulse-dot" style="animation-delay:0.4s"></span>
+                            </div>
+                            <div>
+                                <p class="text-sm text-slate-600 font-medium">Processing in background</p>
+                                <p class="text-xs text-slate-400 mt-0.5 leading-relaxed">
+                                    You'll receive a confirmation email at <span class="font-semibold text-slate-500">${USER_EMAIL}</span> once all emails are delivered.
+                                    You can safely close this page.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Request ID -->
+                    <div class="border-t border-teal-50 px-5 py-2.5 flex justify-between items-center">
+                        <span class="text-[11px] text-slate-300 font-mono">${requestId}</span>
+                        <button onclick="document.getElementById('statusArea').classList.add('hidden')" class="text-[11px] text-slate-400 hover:text-slate-600 font-medium">Dismiss</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // ---- LOGIN ----
         function handleCredentialResponse(response) {
             USER_TOKEN = response.credential;
             const payload = JSON.parse(atob(response.credential.split('.')[1]));
@@ -288,247 +444,77 @@ function clearCsv() {
             document.getElementById('userEmailDisplay').innerText = USER_EMAIL;
             fetchData();
         }
-
         function logout() { USER_TOKEN = null; location.reload(); }
 
-
-// ... keep USER_TOKEN, USER_EMAIL, etc ...
-
-async function fetchData() {
-    const statusDiv = document.getElementById('loginStatus');
-    statusDiv.classList.remove('hidden');
-    statusDiv.innerHTML = '<span class="loader border-t-teal-600 w-4 h-4 mr-2"></span> Verifying & Loading...';
-    statusDiv.className = "mt-4 text-sm font-medium text-slate-500 flex items-center justify-center";
-
-    try {
-        const response = await fetch(APPS_SCRIPT_URL, {
-            method: "POST", 
-            headers: { "Content-Type": "text/plain;charset=utf-8" },
-            body: JSON.stringify({ action: 'getData', token: USER_TOKEN })
-        });
-        
-        const json = await response.json();
-        
-        if (json.error) throw new Error(json.error);
-
-        // --- NEW LOGIC STARTS HERE ---
-        
-        // 1. Save the "Real" database to our backup variable
-        originalData = json.data; 
-
-        // 2. Only update the UI with this data if we aren't currently viewing a CSV
-        // (This prevents the sheet data from overwriting a CSV if you re-login)
-        if (!isCsvMode) {
-            allData = originalData;
-            
-            // 3. Refresh UI
-            populateFilters(); 
-            
-            // We default to 'teachers' tab on first load, or keep current if refreshing
-            //switchTab(currentTab || 'teachers'); 
-        }
-
-        // --- NEW LOGIC ENDS HERE ---
-
-        document.getElementById('loginOverlay').classList.add('hidden');
-        document.getElementById('appContainer').classList.remove('hidden');
-
-    } catch (e) {
-        statusDiv.innerText = "Error: " + e.message; 
-        statusDiv.className = "mt-4 text-sm font-medium text-red-500 text-center";
-        console.error(e);
-    }
-}
-
-        function populateFilters() {
-    // 1. Get unique grades, filter out empties, and sort
-    const grades = [...new Set(allData.map(d => d.Grade))].filter(Boolean).sort();
-    
-    // 2. Clear Container
-    const container = document.getElementById('gradeCheckboxContainer');
-    container.innerHTML = ''; 
-
-    grades.forEach(g => {
-        // ERROR FIX: Convert to String first so numbers (1, 2) don't crash .replace()
-        const valStr = String(g); 
-        const id = `grade_${valStr.replace(/\s+/g, '_')}`; // Safe ID generation
-        
-        const div = document.createElement('div');
-        div.className = "flex items-center space-x-2";
-        
-        // We create the checkbox manually to ensure values are correct
-        div.innerHTML = `
-            <input type="checkbox" id="${id}" value="${valStr}" 
-                   class="grade-checkbox w-4 h-4 text-teal-600 rounded border-gray-300 focus:ring-teal-500 cursor-pointer" 
-                   onchange="applyFilters()">
-            <label for="${id}" class="text-xs text-slate-700 cursor-pointer select-none font-medium">${valStr}</label>
-        `;
-        container.appendChild(div);
-    });
-
-    // 3. Populate Tiers (Keep existing logic)
-    const tiers = [...new Set(allData.map(d => d['Donation Tier']))].filter(Boolean).sort();
-    const tSel = document.getElementById('filterTier');
-    tSel.innerHTML = '<option value="All">All Tiers</option>';
-    tiers.forEach(t => tSel.innerHTML += `<option value="${t}">${t}</option>`);
-
-    document.getElementById('totalDisplay').innerText = allData.length;
-}
-function toggleAllGrades() {
-    const boxes = document.querySelectorAll('.grade-checkbox');
-    if(boxes.length === 0) return;
-    
-    // Check if the first one is currently checked
-    const isChecked = boxes[0].checked;
-    
-    // Toggle to opposite
-    boxes.forEach(b => b.checked = !isChecked);
-    
-    applyFilters();
-}
-
-        function applyFilters() {
-    // 1. Get all checked values (These are always Strings from HTML)
-    const checkedBoxes = document.querySelectorAll('.grade-checkbox:checked');
-    // If nothing checked, assume NO filter (or show empty - your choice. Here we show nothing if nothing checked)
-    const selectedGrades = Array.from(checkedBoxes).map(cb => cb.value);
-
-    const tier = document.getElementById('filterTier').value;
-    const job = document.getElementById('filterJob').value.toLowerCase();
-
-    filteredData = allData.filter(d => {
-        // GRADE MATCH: Compare String(row_grade) with our selected strings
-        // If no boxes checked, show nothing (OR change to 'true' if you want "Show All" when empty)
-        const rowGrade = String(d.Grade);
-        const matchGrade = selectedGrades.length === 0 ? true : selectedGrades.includes(rowGrade);
-        
-        const mT = tier === 'All' || d['Donation Tier'] == tier;
-        const jobStr = d.Occupation ? d.Occupation.toString().toLowerCase() : "";
-        const mJ = job === "" || jobStr.includes(job);
-        
-        return matchGrade && mT && mJ;
-    });
-
-    updateUI();
-}
-
-
-
-
-
-        function updateUI() {
-            document.getElementById('countDisplay').innerText = filteredData.length;
-            const list = document.getElementById('previewList');
-            if (filteredData.length === 0) { list.innerHTML = '<div class="text-center text-slate-400 text-sm p-4">No matches.</div>'; return; }
-            
-            const preview = filteredData.slice(0, 100);
-            let html = '';
-            preview.forEach(row => {
-                // --- INITIALS LOGIC ---
-                const fullName = row['Parent Name'] || "Unknown";
-                // Split name, take first char of each part, join with dots
-                const initials = fullName.split(" ").map(n => n[0].toUpperCase()).join(". ") + ".";
-
-                html += `
-                    <div class="flex justify-between items-center p-2 hover:bg-slate-50 border-b border-slate-50 last:border-0">
-                        <div class="truncate w-2/3">
-                            <div class="font-medium text-slate-700 text-sm truncate" title="${fullName}">${initials}</div>
-                            <div class="text-xs text-slate-400">Contact on file</div>
-                        </div>
-                        <div class="text-xs bg-slate-100 text-slate-500 px-2 py-1 rounded-full">${row.Grade}</div>
-                    </div>
-                `;
-            });
-            list.innerHTML = html;
-        }
-
-
-   /**     
-
-        function updateUI() {
-            document.getElementById('countDisplay').innerText = filteredData.length;
-            const list = document.getElementById('previewList');
-            if (filteredData.length === 0) { list.innerHTML = '<div class="text-center text-slate-400 text-sm p-4">No matches.</div>'; return; }
-            
-            // Show top 100 for performance
-            const preview = filteredData.slice(0, 100);
-            let html = '';
-            preview.forEach(row => {
-                // --- PRIVACY CHANGE: Replaced Email with generic text ---
-                html += `
-                    <div class="flex justify-between items-center p-2 hover:bg-slate-50 border-b border-slate-50 last:border-0">
-                        <div class="truncate w-2/3">
-                            <div class="font-medium text-slate-700 text-sm truncate">${row['Parent Name']}</div>
-                            <div class="text-xs text-slate-400 truncate flex items-center gap-1">
-                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
-                                Contact on file
-                            </div>
-                        </div>
-                        <div class="text-xs bg-slate-100 text-slate-500 px-2 py-1 rounded-full">${row.Grade}</div>
-                    </div>
-                `;
-            });
-            if (filteredData.length > 100) html += `<div class="text-center text-xs text-slate-400 p-2 italic">+ ${filteredData.length - 100} more...</div>`;
-            list.innerHTML = html;
-        } */
-
-        // --- SENDING LOGIC (Keep existing) ---
-        function updateFileCount() {
-             const count = document.getElementById('attachments').files.length;
-             document.getElementById('fileList').innerText = count === 0 ? "" : `${count} file(s) selected`;
-        }
-        const getBase64 = (file) => new Promise((resolve) => {
-            const reader = new FileReader(); reader.readAsDataURL(file);
-            reader.onload = () => resolve({ name: file.name, mime: file.type, data: reader.result.split(',')[1] });
-        });
-
-        async function sendCampaign() {
-            if (filteredData.length === 0) return alert("Select recipients.");
-            if (!document.getElementById('subject').value) return alert("Subject required.");
-            if (!confirm(`Send to ${filteredData.length} parents?`)) return;
-            await performSend(filteredData);
-        }
-        async function sendTestEmail() {
-            const testParent = [{ 'Parent Name': "Test Admin", 'Child Name': "Test Student", 'Grade': "Test", 'Email': USER_EMAIL, '_rowIndex': -1 }];
-            await performSend(testParent, true);
-        }
-
-        async function performSend(recipients, isTest = false) {
-            const btn = document.getElementById('sendBtn'); const statusArea = document.getElementById('statusArea');
-            btn.disabled = true; btn.innerHTML = `<span class="loader border-t-white w-4 h-4 mr-2"></span> Sending...`;
-            statusArea.classList.remove('hidden'); statusArea.className = "mt-4 p-4 rounded-lg text-center text-sm font-medium bg-blue-50 text-blue-700";
-            statusArea.innerText = "Uploading & processing...";
+        async function fetchData() {
+            const s = document.getElementById('loginStatus');
+            s.classList.remove('hidden');
+            s.innerHTML = '<span class="loader border-t-teal-600 w-4 h-4 mr-2"></span> Verifying…';
+            s.className = "mt-4 text-sm font-medium text-slate-500 flex items-center justify-center";
             try {
-                const attachments = await Promise.all([...document.getElementById('attachments').files].map(getBase64));
-                const payload = {
-                    action: 'sendEmail', token: USER_TOKEN, recipients: recipients,
-                    emailData: {
-                        senderName: document.getElementById('senderName').value,
-                        replyTo: document.getElementById('replyTo').value,
-                        subject: (isTest ? "[TEST] " : "") + document.getElementById('subject').value,
-                        body: quill.root.innerHTML, // Sends HTML with base64 images
-                        attachments: attachments
-                    }
-                };
-                const response = await fetch(APPS_SCRIPT_URL, {
-                    method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(payload)
-                });
-                const json = await response.json();
-                if (json.error) throw new Error(json.error);
-                
-                statusArea.className = "mt-4 p-4 rounded-lg text-center text-sm font-medium bg-green-100 text-green-800";
-                statusArea.innerHTML = `Success! Sent: <b>${json.result.sent}</b>. <br>Confirmation sent to ${USER_EMAIL}.`;
-                btn.innerHTML = `<span>Sent Successfully</span>`; btn.classList.remove('bg-teal-600', 'hover:bg-teal-700'); btn.classList.add('bg-green-600', 'hover:bg-green-700');
-                setTimeout(() => {
-                    btn.disabled = false; btn.innerHTML = `<span>Send Campaign</span> <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>`;
-                    btn.classList.add('bg-teal-600', 'hover:bg-teal-700'); btn.classList.remove('bg-green-600', 'hover:bg-green-700');
-                }, 3000);
+                const r = await fetch(APPS_SCRIPT_URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ action: 'getData', token: USER_TOKEN }) });
+                const j = await r.json();
+                if (j.error) throw new Error(j.error);
+                originalData = j.data;
+                if (!isCsvMode) { allData = originalData; populateFilters(); }
+                document.getElementById('loginOverlay').classList.add('hidden');
+                document.getElementById('appContainer').classList.remove('hidden');
             } catch (e) {
-                statusArea.className = "mt-4 p-4 rounded-lg text-center text-sm font-medium bg-red-100 text-red-700";
-                statusArea.innerText = "Failed: " + e.message; btn.disabled = false; btn.innerHTML = "Retry Sending";
+                s.innerText = "Error: " + e.message;
+                s.className = "mt-4 text-sm font-medium text-red-500 text-center";
             }
+        }
+
+        // ---- FILTERS ----
+        function populateFilters() {
+            const grades = [...new Set(allData.map(d => d.Grade))].filter(Boolean).sort();
+            const c = document.getElementById('gradeCheckboxContainer');
+            c.innerHTML = '';
+            grades.forEach(g => {
+                const v = String(g), id = 'grade_' + v.replace(/\s+/g, '_');
+                const d = document.createElement('div'); d.className = "flex items-center space-x-2";
+                d.innerHTML = '<input type="checkbox" id="' + id + '" value="' + v + '" class="grade-checkbox w-3.5 h-3.5 text-teal-600 rounded border-gray-300 focus:ring-teal-500 cursor-pointer" onchange="applyFilters()"><label for="' + id + '" class="text-xs text-slate-600 cursor-pointer select-none">' + v + '</label>';
+                c.appendChild(d);
+            });
+            const tiers = [...new Set(allData.map(d => d['Donation Tier']))].filter(Boolean).sort();
+            const ts = document.getElementById('filterTier');
+            ts.innerHTML = '<option value="All">All Tiers</option>';
+            tiers.forEach(t => ts.innerHTML += '<option value="' + t + '">' + t + '</option>');
+            document.getElementById('totalDisplay').innerText = allData.length;
+        }
+        function toggleAllGrades() {
+            const b = document.querySelectorAll('.grade-checkbox');
+            if (!b.length) return;
+            const on = b[0].checked; b.forEach(x => x.checked = !on); applyFilters();
+        }
+        function applyFilters() {
+            const sel = Array.from(document.querySelectorAll('.grade-checkbox:checked')).map(c => c.value);
+            const tier = document.getElementById('filterTier').value;
+            const job = document.getElementById('filterJob').value.toLowerCase();
+            filteredData = allData.filter(d => {
+                const mg = sel.length === 0 ? true : sel.includes(String(d.Grade));
+                const mt = tier === 'All' || d['Donation Tier'] == tier;
+                const js = d.Occupation ? d.Occupation.toString().toLowerCase() : "";
+                return mg && mt && (job === "" || js.includes(job));
+            });
+            updateUI();
+        }
+        function updateUI() {
+            document.getElementById('countDisplay').innerText = filteredData.length;
+            const list = document.getElementById('previewList');
+            if (filteredData.length === 0) { list.innerHTML = '<div class="text-center text-slate-300 text-sm p-6">No matches.</div>'; return; }
+            const preview = filteredData.slice(0, 100);
+            let html = '';
+            preview.forEach(row => {
+                const fn = row['Parent Name'] || "Unknown";
+                const ini = fn.split(" ").map(n => n[0] ? n[0].toUpperCase() : "").join(". ") + ".";
+                html += '<div class="flex justify-between items-center py-2 px-3 hover:bg-teal-50/50 rounded-lg transition-colors">' +
+                    '<div class="truncate w-2/3"><div class="font-medium text-slate-600 text-sm truncate" title="' + fn + '">' + ini + '</div><div class="text-[11px] text-slate-300">Contact on file</div></div>' +
+                    '<div class="text-[11px] bg-teal-50 text-teal-600 px-2 py-0.5 rounded-full font-medium">' + row.Grade + '</div></div>';
+            });
+            if (filteredData.length > 100) html += '<div class="text-center text-[11px] text-slate-300 p-2">+ ' + (filteredData.length - 100) + ' more…</div>';
+            list.innerHTML = html;
         }
     </script>
 </body>
 </html>
-               
